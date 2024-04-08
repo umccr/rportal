@@ -1,3 +1,15 @@
+^\.bumpversion\.cfg$
+^CODE_OF_CONDUCT\.md$
+^conda$
+^data-raw$
+^Dockerfile$
+^\.dockerignore$
+^\.DS_Store$
+^docs$
+^\.github$
+^LICENSE\.md$
+^nogit$
+^\.pre-commit-config\.yaml$
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^LICENSE\.md$
+^vignettes$
