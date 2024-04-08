@@ -1,0 +1,40 @@
+Package: rportal
+Title: UMCCR Portal R Functions
+Description: Contains functionality for interacting with the UMCCR Data Portal.
+Version: 0.0.0.9000
+Authors@R: 
+    person("Peter", "Diakumis", , "peterdiakumis@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-7502-7545"))
+URL: https://github.com/umccr/rportal, https://umccr.github.io/rportal/
+BugReports: https://github.com/umccr/rportal/issues
+License: MIT + file LICENSE
+biocViews:
+ByteCompile: true
+Config/testthat/edition: 3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE,
+              roclets = c("namespace", "rd", "roxytest::testthat_roclet"))
+RoxygenNote: 7.3.1
+VignetteBuilder: knitr
+Depends:
+    R (>= 4.1)
+Imports:
+    assertthat,
+    DBI,
+    dplyr,
+    glue,
+    googledrive,
+    googlesheets4,
+    jsonlite,
+    lubridate,
+    purrr,
+    RAthena,
+    readr,
+    rlang,
+    tibble,
+    tidyr,
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
