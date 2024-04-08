@@ -2,11 +2,13 @@
 
 # File R/meta_bcl_convert.R: @testexamples
 
-test_that("Function meta_bcl_convert() @ L14", {
+test_that("Function meta_bcl_convert() @ L16", {
   
-  pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+  pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+    system.file(package = "rportal") |>
+    readr::read_rds()
   (m <- meta_bcl_convert(pmeta))
-  expect_equal(sum(!is.na(m$topup_or_rerun)), 1)
+  expect_equal(sum(!is.na(m$topup_or_rerun)), 0)
   expect_equal(length(unique(m$portal_run_id)), 4)
 })
 

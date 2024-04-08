@@ -2,9 +2,11 @@
 
 # File R/meta_umccrise.R: @testexamples
 
-test_that("Function meta_umccrise() @ L13", {
+test_that("Function meta_umccrise() @ L15", {
   
-  pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+  pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+    system.file(package = "rportal") |>
+    readr::read_rds()
   (m <- meta_umccrise(pmeta))
   expect_equal(all(c("LibraryID_normal", "LibraryID_tumor") %in% colnames(m)), TRUE)
 })

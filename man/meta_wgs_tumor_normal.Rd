@@ -18,6 +18,8 @@ A tibble with metadata per workflow run.
 Metadata for wgs_tumor_normal workflow
 }
 \examples{
-pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+  system.file(package = "rportal") |>
+  readr::read_rds()
 (m <- meta_wgs_tumor_normal(pmeta))
 }

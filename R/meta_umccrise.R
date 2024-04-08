@@ -1,11 +1,13 @@
 #' Metadata for umccrise workflow
 #'
-#' @param pmeta Path to portal workflows metadata table, or tibble with already parsed data.
+#' @param pmeta tibble with raw PortalDB workflow metadata.
 #' @param status Workflow status to keep (default: Succeeded).
 #'
-#' @return A tibble with metadata per workflow run.
+#' @return A tibble with tidy metadata per workflow run.
 #' @examples
-#' pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+#' pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+#'   system.file(package = "rportal") |>
+#'   readr::read_rds()
 #' (m <- meta_umccrise(pmeta))
 #' @testexamples
 #' expect_equal(all(c("LibraryID_normal", "LibraryID_tumor") %in% colnames(m)), TRUE)
@@ -14,7 +16,7 @@ meta_umccrise <- function(pmeta, status = "Succeeded") {
   # retrieve workflow runs with the given type and status
   # The input/output json objects changed from 2023-04-07, so need to handle those too
   type <- "umccrise"
-  wf <- portal_meta_read(pmeta) |>
+  wf <- pmeta |>
     dplyr::filter(
       .data$type_name == type,
       .data$end_status %in% status

@@ -5,7 +5,9 @@
 #'
 #' @return A tibble with metadata per workflow run.
 #' @examples
-#' pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+#' pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+#'   system.file(package = "rportal") |>
+#'   readr::read_rds()
 #' (m <- meta_oncoanalyser_wgts_existing_both(pmeta))
 #' @testexamples
 #' expect_equal(all(c("s3_outdir_oncoanalyser", "LibraryID_tumor_wts", "gds_bam_tumor_wgs") %in% colnames(m)), TRUE)
@@ -13,7 +15,7 @@
 meta_oncoanalyser_wgts_existing_both <- function(pmeta, status = "Succeeded") {
   # retrieve workflow runs with the given type and status
   type <- "oncoanalyser_wgts_existing_both"
-  wf <- portal_meta_read(pmeta) |>
+  wf <- pmeta |>
     dplyr::filter(
       .data$type_name == type,
       .data$end_status %in% status

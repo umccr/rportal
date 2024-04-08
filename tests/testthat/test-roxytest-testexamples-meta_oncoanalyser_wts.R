@@ -2,9 +2,11 @@
 
 # File R/meta_oncoanalyser_wts.R: @testexamples
 
-test_that("Function meta_oncoanalyser_wts() @ L13", {
+test_that("Function meta_oncoanalyser_wts() @ L15", {
   
-  pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+  pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+    system.file(package = "rportal") |>
+    readr::read_rds()
   (m <- meta_oncoanalyser_wts(pmeta))
   expect_equal(all(c("s3_outdir_oncoanalyser", "LibraryID", "s3_bam") %in% colnames(m)), TRUE)
 })

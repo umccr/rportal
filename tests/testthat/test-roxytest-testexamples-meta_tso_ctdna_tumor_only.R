@@ -2,10 +2,12 @@
 
 # File R/meta_tso_ctdna_tumor_only.R: @testexamples
 
-test_that("Function meta_tso_ctdna_tumor_only() @ L13", {
+test_that("Function meta_tso_ctdna_tumor_only() @ L15", {
   
-  pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+  pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+    system.file(package = "rportal") |>
+    readr::read_rds()
   (m <- meta_tso_ctdna_tumor_only(pmeta))
-  expect_equal(length(unique(m$portal_run_id)), 2)
+  expect_equal(length(unique(m$portal_run_id)), 4)
 })
 

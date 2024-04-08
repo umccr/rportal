@@ -2,9 +2,11 @@
 
 # File R/meta_wts_alignment_qc.R: @testexamples
 
-test_that("Function meta_wts_alignment_qc() @ L13", {
+test_that("Function meta_wts_alignment_qc() @ L15", {
   
-  pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+  pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+    system.file(package = "rportal") |>
+    readr::read_rds()
   (m <- meta_wts_alignment_qc(pmeta))
   expect_equal("Lane" %in% colnames(m), TRUE)
 })

@@ -2,9 +2,11 @@
 
 # File R/meta_sash.R: @testexamples
 
-test_that("Function meta_sash() @ L13", {
+test_that("Function meta_sash() @ L15", {
   
-  pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+  pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+    system.file(package = "rportal") |>
+    readr::read_rds()
   (m <- meta_sash(pmeta))
   expect_equal(all(c("s3_indir_oncoanalyser", "LibraryID_tumor", "s3_outdir_sash") %in% colnames(m)), TRUE)
 })

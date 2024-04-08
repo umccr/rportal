@@ -5,16 +5,18 @@
 #'
 #' @return A tibble with metadata per workflow run.
 #' @examples
-#' pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+#' pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+#'   system.file(package = "rportal") |>
+#'   readr::read_rds()
 #' (m <- meta_bcl_convert(pmeta))
 #' @testexamples
-#' expect_equal(sum(!is.na(m$topup_or_rerun)), 1)
+#' expect_equal(sum(!is.na(m$topup_or_rerun)), 0)
 #' expect_equal(length(unique(m$portal_run_id)), 4)
 #' @export
 meta_bcl_convert <- function(pmeta, status = "Succeeded") {
   # retrieve workflow runs with the given type and status
   type <- "bcl_convert"
-  wf <- portal_meta_read(pmeta) |>
+  wf <- pmeta |>
     dplyr::filter(
       .data$type_name == type,
       .data$end_status %in% status

@@ -2,9 +2,11 @@
 
 # File R/meta_wgs_tumor_normal.R: @testexamples
 
-test_that("Function meta_wgs_tumor_normal() @ L13", {
+test_that("Function meta_wgs_tumor_normal() @ L15", {
   
-  pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+  pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+    system.file(package = "rportal") |>
+    readr::read_rds()
   (m <- meta_wgs_tumor_normal(pmeta))
   expect_equal("SubjectID" %in% colnames(m), TRUE)
 })

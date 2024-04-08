@@ -2,9 +2,11 @@
 
 # File R/meta_wts_tumor_only.R: @testexamples
 
-test_that("Function meta_wts_tumor_only() @ L14", {
+test_that("Function meta_wts_tumor_only() @ L16", {
   
-  pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+  pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+    system.file(package = "rportal") |>
+    readr::read_rds()
   (m <- meta_wts_tumor_only(pmeta))
   expect_equal(length(unique(m$portal_run_id)), 4)
   expect_equal(length(unique(m$LibraryID)), 4)

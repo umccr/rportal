@@ -7,17 +7,19 @@
 meta_umccrise(pmeta, status = "Succeeded")
 }
 \arguments{
-\item{pmeta}{Path to portal workflows metadata table, or tibble with already parsed data.}
+\item{pmeta}{tibble with raw PortalDB workflow metadata.}
 
 \item{status}{Workflow status to keep (default: Succeeded).}
 }
 \value{
-A tibble with metadata per workflow run.
+A tibble with tidy metadata per workflow run.
 }
 \description{
 Metadata for umccrise workflow
 }
 \examples{
-pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+  system.file(package = "rportal") |>
+  readr::read_rds()
 (m <- meta_umccrise(pmeta))
 }

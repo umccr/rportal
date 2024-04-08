@@ -5,16 +5,18 @@
 #'
 #' @return A tibble with metadata per workflow run.
 #' @examples
-#' pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+#' pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+#'   system.file(package = "rportal") |>
+#'   readr::read_rds()
 #' (m <- meta_rnasum(pmeta))
 #' @testexamples
 #' expect_equal(m$rnasum_dataset[1], "PANCAN")
-#' expect_equal(basename(m$gds_outfile_rnasum_html[4]), "MDX230467.RNAseq_report.html")
+#' expect_equal(basename(m$gds_outfile_rnasum_html[4]), "PRJ222637.RNAseq_report.html")
 #' @export
 meta_rnasum <- function(pmeta, status = "Succeeded") {
   # retrieve workflow runs with the given type and status
   type <- "rnasum"
-  wf <- portal_meta_read(pmeta) |>
+  wf <- pmeta |>
     dplyr::filter(
       .data$type_name == type,
       .data$end_status %in% status

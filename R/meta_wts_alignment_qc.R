@@ -5,7 +5,9 @@
 #'
 #' @return A tibble with metadata per workflow run.
 #' @examples
-#' pmeta <- system.file("extdata/portal_meta_top4.csv", package = "rportal")
+#' pmeta <- "extdata/portaldb_workflow_top4.rds" |>
+#'   system.file(package = "rportal") |>
+#'   readr::read_rds()
 #' (m <- meta_wts_alignment_qc(pmeta))
 #' @testexamples
 #' expect_equal("Lane" %in% colnames(m), TRUE)
@@ -13,7 +15,7 @@
 meta_wts_alignment_qc <- function(pmeta, status = "Succeeded") {
   # retrieve workflow runs with the given type and status
   type <- "wts_alignment_qc"
-  wf <- portal_meta_read(pmeta) |>
+  wf <- pmeta |>
     dplyr::filter(
       .data$type_name == type,
       .data$end_status %in% status
