@@ -32,9 +32,10 @@ portaldb_connect <- function() {
 portaldb_query <- function(query = NULL) {
   assertthat::assert_that(!is.null(query))
   con <- portaldb_connect()
-  RAthena::dbGetQuery(con, query) |>
+  d <- RAthena::dbGetQuery(con, query) |>
     tibble::as_tibble()
   DBI::dbDisconnect(con)
+  return(d)
 }
 
 #' PortalDB Query Table
