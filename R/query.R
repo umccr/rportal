@@ -32,6 +32,7 @@ portaldb_connect <- function() {
 portaldb_query <- function(query = NULL) {
   assertthat::assert_that(!is.null(query))
   con <- portaldb_connect()
+  cli::cli_alert_info("Running following SQL query:\n{query}")
   d <- RAthena::dbGetQuery(con, query) |>
     tibble::as_tibble()
   DBI::dbDisconnect(con)
