@@ -170,6 +170,7 @@ pmeta_status_count <- pmeta_sumy |>
   count(type_name, end_status, .drop = FALSE) |>
   funcs$add_totals() |>
   mutate(type_name = if_else(is.na(.data$type_name), "", .data$type_name))
+runtime_vis_height <- 5 + (nrow(pmeta_sumy) * 0.35)
 ```
 
 ## Summary Tables
@@ -192,18 +193,29 @@ funcs$sbj_wf_count_tbl(pmeta_sumy)
 
 :::
 
-```{r eval=F}
-#| results: asis
-funcs$blank_lines()
-```
-
 ## RuntimeVis
 
-```{r vistime, fig.width=20, fig.height = 40}
+```{r vistime, fig.width=20, fig.height = runtime_vis_height}
 funcs$plot_vistime(pmeta_sumy)
 ```
 
 ## Workflow Metadata
+
+```{r}
+#| label: tab_meta_prep
+end_status_def <- reactable::colDef(
+  style = function(val) {
+    color <- case_when(
+      val == "Succeeded" ~ "green",
+      val == "Failed" ~ "red",
+      val == "Aborted" ~ "purple",
+      .default = "black"
+    )
+    list(color = color, fontweight = "bold")
+  }
+)
+SubjectID_def <- reactable::colDef(html = TRUE, minWidth = 120)
+```
 
 ::: {.panel-tabset .nav-pills}
 
@@ -235,10 +247,10 @@ pmeta_tidy[[wf]] |>
   select(
     "end_status", "portal_run_id", "durationMin", "runfolder_name", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
     "ProjectOwner", "ProjectName", "batch_name", "Type", "Assay", "Source", "Quality", "Workflow",
-    "start", "end"
+    "start", "end", contains("gds_outdir")
   ) |>
   arrange(portal_run_id, desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -267,7 +279,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -297,7 +309,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -327,7 +339,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -357,7 +369,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -392,7 +404,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen_somatic", "gds_outdir_dragen_germline"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -427,7 +439,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_umccrise"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -457,7 +469,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_rnasum",
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -487,7 +499,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_star"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -517,7 +529,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 
@@ -553,7 +565,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -589,7 +601,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 ```{r}
@@ -624,7 +636,7 @@ pmeta_tidy[[wf]] |>
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_sash"
   ) |>
   arrange(desc(SubjectID), start) |>
-  funcs$dt_view()
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
 ```
 
 :::

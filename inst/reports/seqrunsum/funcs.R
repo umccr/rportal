@@ -5,26 +5,31 @@ funcs <- list(
       kableExtra::kable_minimal(full_width = TRUE, position = "left")
   },
   #----#
-  dt_view = function(x, ...) {
-    x |>
-      mutate(across(where(is.character), as.factor)) |>
-      DT::datatable(
-        filter = list(position = "top", clear = FALSE, plain = TRUE),
-        class = "cell-border display compact",
-        rownames = FALSE,
-        extensions = c("Scroller", "Buttons", "KeyTable"),
-        options = list(
-          scroller = TRUE, scrollY = 400, scrollX = TRUE,
-          autoWidth = FALSE, keys = TRUE,
-          buttons = c("csv"), dom = "Blfrtip"
+  dt_view = function(x, id, ...) {
+    htmltools::browsable(
+      htmltools::tagList(
+        htmltools::tags$button(
+          htmltools::tagList(fontawesome::fa("download"), "CSV"),
+          onclick = glue("Reactable.downloadDataCSV('{id}', '{id}.csv')")
         ),
-        escape = FALSE,
-        ...
-      ) |>
-      DT::formatStyle(
-        "end_status",
-        backgroundColor = DT::styleEqual(levels = c("Succeeded", "Failed"), c("lightgreen", "red"))
+        x |>
+          reactable::reactable(
+            bordered = TRUE,
+            filterable = TRUE,
+            fullWidth = TRUE,
+            height = 500,
+            highlight = TRUE,
+            pagination = FALSE,
+            resizable = TRUE,
+            searchable = TRUE,
+            sortable = TRUE,
+            striped = TRUE,
+            wrap = FALSE,
+            elementId = id,
+            ...
+          )
       )
+    )
   },
   #----#
   blank_lines = function(n = 10) {
@@ -135,7 +140,12 @@ funcs <- list(
       reactable::reactable(
         rownames = TRUE,
         pagination = FALSE,
+        highlight = TRUE,
+        filterable = TRUE,
         height = 500,
+        wrap = FALSE,
+        resizable = TRUE,
+        width = 1000,
         fullWidth = TRUE,
         bordered = TRUE,
         columns = list(
@@ -169,6 +179,7 @@ funcs <- list(
     sbj_sumy |>
       reactable::reactable(
         height = 500,
+        width = 1000,
         pagination = FALSE,
         fullWidth = TRUE,
         bordered = TRUE,
