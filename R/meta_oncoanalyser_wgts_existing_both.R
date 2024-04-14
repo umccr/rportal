@@ -45,7 +45,7 @@ meta_oncoanalyser_wgts_existing_both <- function(pmeta, status = "Succeeded") {
     )
   d |>
     dplyr::select(
-      meta_main_cols(),
+      dplyr::all_of(meta_main_cols()),
       "SubjectID",
       "LibraryID_tumor_wgs",
       "LibraryID_normal_wgs",

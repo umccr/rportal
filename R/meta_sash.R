@@ -41,7 +41,7 @@ meta_sash <- function(pmeta, status = "Succeeded") {
     )
   d |>
     dplyr::select(
-      meta_main_cols(),
+      dplyr::all_of(meta_main_cols()),
       "SubjectID",
       "LibraryID_tumor",
       "LibraryID_normal",

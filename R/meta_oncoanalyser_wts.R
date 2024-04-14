@@ -38,7 +38,7 @@ meta_oncoanalyser_wts <- function(pmeta, status = "Succeeded") {
     )
   d |>
     dplyr::select(
-      meta_main_cols(),
+      dplyr::all_of(meta_main_cols()),
       "SubjectID",
       "LibraryID",
       "SampleID",
