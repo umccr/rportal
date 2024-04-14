@@ -57,7 +57,11 @@ funcs <- list(
     if (!is.null(colour)) {
       return(glue("<a href={sbj_url} style='background-color:{colour}'>{x}</a>"))
     }
-    sbj_url <- glue("<a href={sbj_url}>{x}</a>")
+    sbj_url <- ifelse(
+      is.na(x),
+      glue("UNKNOWN"),
+      glue("<a href={sbj_url}>{x}</a>")
+    )
     sbj_url
   },
   #----#

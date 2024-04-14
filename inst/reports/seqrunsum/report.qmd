@@ -160,6 +160,7 @@ unique_sbj <- sort(unique(pmeta_sumy$sbjid))
 clrs1 <- funcs$get_colours(length(unique_sbj)) |>
   purrr::set_names(unique_sbj) |>
   tibble::enframe(name = "sbjid", value = "color") |>
+  rowwise() |>
   mutate(sbj_url = funcs$get_sbj_url(.data$sbjid, colour = .data$color, account = "pro"))
 pmeta_sumy_count <- pmeta_sumy |>
   count(type_name, .drop = FALSE) |>
@@ -215,7 +216,7 @@ wf <- "bcl_convert"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -248,7 +249,7 @@ wf <- "tso_ctdna_tumor_only"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -278,7 +279,7 @@ wf <- "wgs_alignment_qc"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -308,7 +309,7 @@ wf <- "wts_alignment_qc"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -338,7 +339,7 @@ wf <- "wts_tumor_only"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -368,7 +369,7 @@ wf <- "wgs_tumor_normal"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -403,7 +404,7 @@ wf <- "umccrise"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -438,7 +439,7 @@ wf <- "rnasum"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -468,7 +469,7 @@ wf <- "star_alignment"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -498,7 +499,7 @@ wf <- "oncoanalyser_wts"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -529,7 +530,7 @@ wf <- "oncoanalyser_wgs"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -564,7 +565,7 @@ wf <- "oncoanalyser_wgts_existing_both"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -600,7 +601,7 @@ wf <- "sash"
 
 ```{r}
 if (!chunks1[[wf]]) {
-  kable_empty_wf(wf)
+  funcs$kable_empty_wf(wf)
 }
 ```
 
@@ -632,7 +633,10 @@ pmeta_tidy[[wf]] |>
 
 ```{r}
 si <- dracarys:::session_info_tbls(
-  pkgs = c("dracarys", "base", "dplyr", "DT", "readr", "purrr", "tidyr", "tibble", "vistime", "kableExtra")
+  pkgs = c(
+    "dracarys", "rportal", "base", "dplyr", "DT", "readr", "purrr",
+    "tidyr", "tibble", "vistime", "kableExtra"
+  )
 )
 si_pkg <- si$si_pkg |>
   kableExtra::kbl(full_width = FALSE, position = "left") |>
