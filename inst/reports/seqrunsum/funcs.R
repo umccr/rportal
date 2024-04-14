@@ -76,24 +76,6 @@ funcs <- list(
     eval(parse(text = f))
   },
   #----#
-  status_count = function(pmeta_status_count) {
-    pmeta_status_count |>
-      mutate(type_name = if_else(is.na(.data$type_name), "", .data$type_name)) |>
-      kableExtra::kbl(caption = "Workflow Type Count", row.names = TRUE) |>
-      kableExtra::kable_classic(full_width = FALSE, position = "float_left") |>
-      kableExtra::column_spec(
-        3,
-        color = ifelse(
-          is.na(pmeta_status_count$end_status), "orange", ifelse(
-            pmeta_status_count$end_status == "Succeeded", "green",
-            ifelse(pmeta_status_count$end_status == "Failed", "red",
-              ifelse(pmeta_status_count$end_status == "Aborted", "purple", "black")
-            )
-          )
-        )
-      )
-  },
-  #----#
   get_ids = function(pmeta_tidy, id) {
     .get_ids <- function(tbl, id) {
       tbl |>
@@ -126,7 +108,7 @@ funcs <- list(
         col.event = "sbj_lib",
         col.group = "type_name",
         col.color = "color",
-        show_labels = TRUE,
+        show_labels = FALSE,
         optimize_y = FALSE,
         linewidth = 15
       )
@@ -142,5 +124,53 @@ funcs <- list(
       }
     }
     pp
+  },
+  #----#
+  status_count_tbl = function(pmeta_status_count) {
+    pmeta_status_count |>
+      reactable::reactable(
+        rownames = TRUE,
+        pagination = FALSE,
+        height = 500,
+        fullWidth = TRUE,
+        bordered = TRUE,
+        columns = list(
+          end_status = reactable::colDef(
+            style = function(val) {
+              color <- case_when(
+                val == "Succeeded" ~ "green",
+                val == "Failed" ~ "red",
+                val == "Aborted" ~ "purple",
+                .default = "black"
+              )
+              list(color = color, fontweight = "bold")
+            }
+          )
+        )
+      )
+  },
+  #----#
+  sbj_wf_count_tbl = function(pmeta_sumy) {
+    sbj_sumy <-
+      pmeta_sumy |>
+      select("sbjid", "type_name") |>
+      filter(grepl("SBJ", .data$sbjid)) |>
+      mutate(sbj_tot_wf = n(), .by = "sbjid") |>
+      mutate(sbjid = glue("{sbjid} ({sbj_tot_wf})")) |>
+      mutate(n_wf = n(), .by = c("sbjid", "type_name")) |>
+      select(-sbj_tot_wf) |>
+      distinct() |>
+      arrange(desc(sbjid)) |>
+      rename("SubjectID (n_wf) (n_wf_types)" = "sbjid")
+    sbj_sumy |>
+      reactable::reactable(
+        height = 500,
+        pagination = FALSE,
+        fullWidth = TRUE,
+        bordered = TRUE,
+        groupBy = "SubjectID (n_wf) (n_wf_types)",
+        onClick = "expand",
+        rowStyle = list(cursor = "pointer")
+      )
   }
 )

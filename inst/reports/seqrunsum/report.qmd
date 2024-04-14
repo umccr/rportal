@@ -9,7 +9,7 @@ execute:
   eval: true
 format:
   html:
-    toc: true
+    toc: false
     toc-expand: 1
     toc-title: Contents
     toc-location: body
@@ -23,8 +23,8 @@ format:
     code-fold: true
     code-block-border-left: true
     smooth-scroll: true
-   grid:
-     body-width: 1300px
+    grid:
+      body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
   date_start: "2024-03-23"
@@ -119,7 +119,7 @@ pmeta_tidy <- wfs |>
   tibble::deframe()
 # grab all libids/sbjids involved in any of the workflows
 libids <- funcs$get_ids(pmeta_tidy, "LibraryID")
-sbjids <- funcs$get_ids(pmeta_tidy, "SubjectID")
+sbjids <- funcs$get_ids(pmeta_tidy, "SubjectID") # not used anywhere (yet?)
 ```
 
 ```{r}
@@ -167,48 +167,44 @@ pmeta_sumy_count <- pmeta_sumy |>
 chunks1 <- as.list(pmeta_sumy_count > 0)
 pmeta_status_count <- pmeta_sumy |>
   count(type_name, end_status, .drop = FALSE) |>
-  funcs$add_totals()
+  funcs$add_totals() |>
+  mutate(type_name = if_else(is.na(.data$type_name), "", .data$type_name))
 ```
 
-```{r}
-#| label: show_sumy_tbls
-funcs$status_count(pmeta_status_count)
-sbj_sumy <- pmeta_sumy |>
-  count(sbjid, name = "n_wf") |>
-  filter(grepl("SBJ", .data$sbjid)) |>
-  arrange(desc(sbjid)) |>
-  left_join(clrs1, by = "sbjid") |>
-  mutate(rn = row_number())
-# split into multiple columns based on number of sbjs
-group_len <- 10
-sbj_sumy$column_group <- rep(
-  seq(1, 1 + nrow(sbj_sumy) %/% group_len),
-  each = group_len, length.out = nrow(sbj_sumy)
-)
+## Summary Tables
 
-x <- sbj_sumy |>
-  select("rn", "sbj_url", "n_wf", "column_group")
-split(x, x$column_group) |>
-  purrr::map(\(y) {
-    z <- y |> select("rn", "sbj_url", "n_wf")
-    colnames(z)[1] <- ""
-    z
-  }) |>
-  kableExtra::kbl(caption = "Subjects processed via one or more workflows", row.names = FALSE, escape = FALSE, table.attr = "style='width:30%;'") |>
-  kableExtra::kable_classic(full_width = FALSE, position = "left")
+::: {.panel-tabset .nav-pills}
+
+### Workflow Status
+
+```{r}
+#| label: status_count_tbl
+funcs$status_count_tbl(pmeta_status_count)
 ```
 
+### Workflow Counts Per Subject
+
 ```{r}
+#| label: sbj_wf_count_tbl
+funcs$sbj_wf_count_tbl(pmeta_sumy)
+```
+
+:::
+
+```{r eval=F}
 #| results: asis
 funcs$blank_lines()
 ```
 
 ## RuntimeVis
 
-```{r vistime, fig.width=20, fig.height = 24}
+```{r vistime, fig.width=20, fig.height = 40}
+funcs$plot_vistime(pmeta_sumy)
 ```
 
-## Workflow Metadata {.tabset .tabset-pills}
+## Workflow Metadata
+
+::: {.panel-tabset .nav-pills}
 
 ```{r}
 #| echo: false
@@ -630,7 +626,9 @@ pmeta_tidy[[wf]] |>
   funcs$dt_view()
 ```
 
-## Session Info {.tabset .tabset-pills}
+:::
+
+## Session Info
 
 ```{r}
 si <- dracarys:::session_info_tbls(
@@ -644,6 +642,8 @@ si_pl <- si$si_pl |>
   kableExtra::kable_minimal()
 ```
 
+::: {.panel-tabset .nav-pills}
+
 ### Platform
 
 ```{r}
@@ -655,3 +655,5 @@ si_pl
 ```{r}
 si_pkg
 ```
+
+:::
