@@ -27,8 +27,8 @@ format:
       body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
-  date_start: "2024-03-23"
-  date_end: "2024-03-29"
+  date_start: "2024-04-13"
+  date_end: "2024-04-16"
 ---
 
 ```{r}
@@ -61,8 +61,8 @@ source(here("inst/reports/seqrunsum/funcs.R"))
 
 ```{r eval=interactive()}
 params <- list(
-  date_start = "2024-03-23",
-  date_end = "2024-03-29"
+  date_start = "2024-04-13",
+  date_end = "2024-04-16"
 )
 ```
 

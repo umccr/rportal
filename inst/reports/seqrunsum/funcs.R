@@ -135,17 +135,17 @@ funcs <- list(
     pp
   },
   #----#
-  status_count_tbl = function(pmeta_status_count) {
+  status_count_tbl = function(pmeta_status_count, height = 500, width = 1000) {
     pmeta_status_count |>
       reactable::reactable(
         rownames = TRUE,
         pagination = FALSE,
         highlight = TRUE,
         filterable = TRUE,
-        height = 500,
+        height = height,
         wrap = FALSE,
         resizable = TRUE,
-        width = 1000,
+        width = width,
         fullWidth = TRUE,
         bordered = TRUE,
         columns = list(
