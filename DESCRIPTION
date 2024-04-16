@@ -21,6 +21,7 @@ Depends:
     R (>= 4.1)
 Imports:
     assertthat,
+    cli,
     DBI,
     dplyr,
     glue,

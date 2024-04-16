@@ -1,0 +1,675 @@
+---
+title: "{{< meta params.title >}}"
+subtitle: "Period: {{< meta params.date_start >}} to {{< meta params.date_end >}}"
+author: "UMCCR - Genomics Platform Group"
+date: now
+date-format: "YYYY-MM-DD HH:mm Z"
+execute:
+  echo: false
+  eval: true
+format:
+  html:
+    toc: false
+    toc-expand: 1
+    toc-title: Contents
+    toc-location: body
+    highlight-style: github
+    number-sections: false
+    link-external-icon: true
+    link-external-newwindow: true
+    embed-resources: true
+    code-copy: true
+    code-link: true
+    code-fold: true
+    code-block-border-left: true
+    smooth-scroll: true
+    grid:
+      body-width: 1300px
+params:
+  title: "UMCCR PortalDB Workflow Summary"
+  date_start: "2024-04-13"
+  date_end: "2024-04-16"
+---
+
+```{r}
+#| label: pkg_load
+#| message: false
+{
+  require(assertthat, include.only = "assert_that")
+  require(dplyr)
+  require(dracarys, include.only = "session_info_kable")
+  require(DT, include.only = "datatable")
+  require(glue, include.only = "glue")
+  require(here, include.only = "here")
+  require(jsonlite, include.only = "fromJSON")
+  require(kableExtra, include.only = "kbl")
+  require(purrr, include.only = "map")
+  require(RColorBrewer, include.only = "brewer.pal")
+  require(rportal, include.only = "awsvault_profile")
+  require(readr, include.only = "cols")
+  require(tibble, include.only = "as_tibble")
+  require(tidyr, include.only = "unnest")
+  require(knitr, include.only = "kable")
+  require(vistime, include.only = "vistime")
+}
+set.seed(42)
+```
+
+```{r funcs_source}
+source(here("inst/reports/seqrunsum/funcs.R"))
+```
+
+```{r eval=interactive()}
+params <- list(
+  date_start = "2024-04-13",
+  date_end = "2024-04-16"
+)
+```
+
+
+```{r}
+#| label: vars
+fmt1 <- "%Y-%m-%dT%H:%M:%S"
+dstart <- params$date_start
+dend <- params$date_end
+date_start <- as.POSIXct(glue("{dstart}T00:00:01"), format = fmt1)
+date_end <- as.POSIXct(glue("{dend}T23:59:59"), format = fmt1)
+wfs <- tibble::tribble(
+  ~name,
+  "bcl_convert",
+  "tso_ctdna_tumor_only",
+  "wgs_alignment_qc",
+  "wts_alignment_qc",
+  "wts_tumor_only",
+  "wgs_tumor_normal",
+  "umccrise",
+  "rnasum",
+  "star_alignment",
+  "oncoanalyser_wts",
+  "oncoanalyser_wgs",
+  "oncoanalyser_wgts_existing_both",
+  "sash"
+) |>
+  mutate(func = glue("rportal::meta_{name}"))
+```
+
+```{r}
+#| label: query_workflow_table
+invisible(capture.output(rportal::awsvault_profile("upro")))
+query_wf <- glue('WHERE "start" >= date(\'{dstart}\') AND "start" <= date(\'{dend}\') ORDER BY "start" DESC;')
+pmeta_rds <- here(glue("nogit/data_portal/workflows/{as.Date(date_end)}.rds"))
+# pmeta_raw <- rportal::portaldb_query_workflow(query_wf)
+# saveRDS(pmeta_raw, file = pmeta_rds)
+pmeta_raw <- readr::read_rds(pmeta_rds)
+# check there are no rogue unaccounted wfs run
+stopifnot(all(pmeta_raw[["type_name"]] %in% wfs[["name"]]))
+```
+
+```{r}
+#| label: tidy_workflow_table
+pmeta <- pmeta_raw |>
+  filter(.data$start >= date_start, is.na(.data$end) | .data$end <= date_end) |>
+  mutate(type_name = factor(.data$type_name, levels = wfs[["name"]]))
+status <- c("Succeeded", "Running", "Failed", "Aborted")
+# list of tidy tbls per wf
+pmeta_tidy <- wfs |>
+  rowwise() |>
+  mutate(tidy_meta = list(funcs$func_eval(.data$func)(pmeta, status))) |>
+  select("name", "tidy_meta") |>
+  tibble::deframe()
+# grab all libids/sbjids involved in any of the workflows
+libids <- funcs$get_ids(pmeta_tidy, "LibraryID")
+sbjids <- funcs$get_ids(pmeta_tidy, "SubjectID") # not used anywhere (yet?)
+```
+
+```{r}
+#| label: query_limsrow_table
+lims_rds <- here(glue("nogit/data_portal/lims/{as.Date(date_end)}.rds"))
+libidsq <- paste(libids, collapse = "|")
+query_lims <- glue("WHERE REGEXP_LIKE(\"library_id\", '{libidsq}');")
+# lims_raw <- rportal::portaldb_query_limsrow(query_lims)
+# saveRDS(lims_raw, file = lims_rds)
+lims_raw <- readr::read_rds(lims_rds)
+lims <- lims_raw |>
+  select(
+    SubjectID = "subject_id", SampleID = "sample_id", LibraryID = "library_id",
+    ExternalSubjectID = "external_subject_id",
+    ProjectOwner = "project_owner", ProjectName = "project_name",
+    Type = "type", Assay = "assay", Phenotype = "phenotype",
+    Source = "source", Quality = "quality", Topup = "topup", Workflow = "workflow"
+  )
+```
+
+```{r}
+#| label: data_setup
+pmeta_sumy <- pmeta |>
+  select(
+    "start", "end", "wfr_name", "type_name", "wfr_id", "portal_run_id", "end_status"
+  ) |>
+  rowwise() |>
+  mutate(
+    wfr_name = if_else(grepl("umccr__automated", .data$wfr_name),
+      glue("{.data$wfr_name}"),
+      glue("umccr__automated__{.data$wfr_name}")
+    ),
+    sbj_lib = sub("umccr__automated__(.*?)__(SBJ.*__L.*)__202.*", "\\2", .data$wfr_name),
+    sbjid = sub("(SBJ.*?)__L.*", "\\1", .data$sbj_lib)
+  ) |>
+  ungroup()
+unique_sbj <- sort(unique(pmeta_sumy$sbjid))
+clrs1 <- funcs$get_colours(length(unique_sbj)) |>
+  purrr::set_names(unique_sbj) |>
+  tibble::enframe(name = "sbjid", value = "color") |>
+  rowwise() |>
+  mutate(sbj_url = funcs$get_sbj_url(.data$sbjid, colour = .data$color, account = "pro"))
+pmeta_sumy_count <- pmeta_sumy |>
+  count(type_name, .drop = FALSE) |>
+  tibble::deframe()
+chunks1 <- as.list(pmeta_sumy_count > 0)
+pmeta_status_count <- pmeta_sumy |>
+  count(type_name, end_status, .drop = FALSE) |>
+  funcs$add_totals() |>
+  mutate(type_name = if_else(is.na(.data$type_name), "", .data$type_name))
+runtime_vis_height <- 5 + (nrow(pmeta_sumy) * 0.35)
+```
+
+## Summary Tables
+
+::: {.panel-tabset .nav-pills}
+
+### Workflow Status
+
+```{r}
+#| label: status_count_tbl
+funcs$status_count_tbl(pmeta_status_count)
+```
+
+### Workflow Counts Per Subject
+
+```{r}
+#| label: sbj_wf_count_tbl
+funcs$sbj_wf_count_tbl(pmeta_sumy)
+```
+
+:::
+
+## RuntimeVis
+
+```{r vistime, fig.width=20, fig.height = runtime_vis_height}
+funcs$plot_vistime(pmeta_sumy)
+```
+
+## Workflow Metadata
+
+```{r}
+#| label: tab_meta_prep
+end_status_def <- reactable::colDef(
+  style = function(val) {
+    color <- case_when(
+      val == "Succeeded" ~ "green",
+      val == "Failed" ~ "red",
+      val == "Aborted" ~ "purple",
+      .default = "black"
+    )
+    list(color = color, fontweight = "bold")
+  }
+)
+SubjectID_def <- reactable::colDef(html = TRUE, minWidth = 120)
+```
+
+::: {.panel-tabset .nav-pills}
+
+```{r}
+#| echo: false
+wf <- "bcl_convert"
+```
+
+### 1. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  select(
+    "end_status", "portal_run_id", "gds_outdir_multiqc", "gds_outdir_multiqc_interop",
+    "runfolder_name", "LibraryID", "SampleID", "batch_name", "start", "end"
+  ) |>
+  left_join(lims, by = c("LibraryID", "SampleID")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "portal_run_id", "durationMin", "runfolder_name", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "batch_name", "Type", "Assay", "Source", "Quality", "Workflow",
+    "start", "end", contains("gds_outdir")
+  ) |>
+  arrange(portal_run_id, desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+wf <- "tso_ctdna_tumor_only"
+```
+
+### 2. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "gds_outdir"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "wgs_alignment_qc"
+```
+
+### 3. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "Lane", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "wts_alignment_qc"
+```
+
+### 4. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "Lane", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "wts_tumor_only"
+```
+
+### 5. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID")) |>
+  left_join(clrs1 |> select(sbjid, sbj_url), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
+    "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "wgs_tumor_normal"
+```
+
+### 6. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  tidyr::unite("SampleID__LibraryID___normal", SampleID_normal, LibraryID_normal, sep = "__") |>
+  tidyr::unite("SampleID__LibraryID___tumor", SampleID_tumor, LibraryID_tumor, sep = "__") |>
+  tidyr::pivot_longer(c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"), names_to = c(NA, "Phenotype"), names_sep = "___", values_to = "SampleID__LibraryID") |>
+  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  # include Phenotype to double-check join
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
+    "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen_somatic", "gds_outdir_dragen_germline"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "umccrise"
+```
+
+### 7. `r wf` {.active}
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  tidyr::unite("SampleID__LibraryID___normal", SampleID_normal, LibraryID_normal, sep = "__") |>
+  tidyr::unite("SampleID__LibraryID___tumor", SampleID_tumor, LibraryID_tumor, sep = "__") |>
+  tidyr::pivot_longer(c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"), names_to = c(NA, "Phenotype"), names_sep = "___", values_to = "SampleID__LibraryID") |>
+  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  # include Phenotype to double-check join
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_umccrise"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "rnasum"
+```
+
+### 8. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "rnasum_dataset", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_rnasum",
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "star_alignment"
+```
+
+### 9. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
+    "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_star"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "oncoanalyser_wts"
+```
+
+### 10. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
+    "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+
+```{r}
+#| echo: false
+wf <- "oncoanalyser_wgs"
+```
+
+### 11. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  tidyr::unite("SampleID__LibraryID___normal", SampleID_normal, LibraryID_normal, sep = "__") |>
+  tidyr::unite("SampleID__LibraryID___tumor", SampleID_tumor, LibraryID_tumor, sep = "__") |>
+  tidyr::pivot_longer(c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"), names_to = c(NA, "Phenotype"), names_sep = "___", values_to = "SampleID__LibraryID") |>
+  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  # include Phenotype to double-check join
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "oncoanalyser_wgts_existing_both"
+```
+
+### 12. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  tidyr::unite("SampleID__LibraryID___normal___wgs", SampleID_normal_wgs, LibraryID_normal_wgs, sep = "__") |>
+  tidyr::unite("SampleID__LibraryID___tumor___wgs", SampleID_tumor_wgs, LibraryID_tumor_wgs, sep = "__") |>
+  tidyr::unite("SampleID__LibraryID___tumor___wts", SampleID_tumor_wts, LibraryID_tumor_wts, sep = "__") |>
+  tidyr::pivot_longer(c("SampleID__LibraryID___normal___wgs", "SampleID__LibraryID___tumor___wgs", "SampleID__LibraryID___tumor___wts"), names_to = c(NA, "Phenotype", "WGTS"), names_sep = "___", values_to = "SampleID__LibraryID") |>
+  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  # include Phenotype to double-check join
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "WGTS", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+```{r}
+#| echo: false
+wf <- "sash"
+```
+
+### 13. `r wf`
+
+```{r}
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+pmeta_tidy[[wf]] |>
+  tidyr::unite("SampleID__LibraryID___normal", SampleID_normal, LibraryID_normal, sep = "__") |>
+  tidyr::unite("SampleID__LibraryID___tumor", SampleID_tumor, LibraryID_tumor, sep = "__") |>
+  tidyr::pivot_longer(c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"), names_to = c(NA, "Phenotype"), names_sep = "___", values_to = "SampleID__LibraryID") |>
+  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  # include Phenotype to double-check join
+  left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url),
+    durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+  ) |>
+  select(
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_sash"
+  ) |>
+  arrange(desc(SubjectID), start) |>
+  funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
+```
+
+:::
+
+## Session Info
+
+```{r}
+si <- dracarys:::session_info_tbls(
+  pkgs = c(
+    "dracarys", "rportal", "base", "dplyr", "DT", "readr", "purrr",
+    "tidyr", "tibble", "vistime", "kableExtra"
+  )
+)
+si_pkg <- si$si_pkg |>
+  kableExtra::kbl(full_width = FALSE, position = "left") |>
+  kableExtra::kable_styling(fixed_thead = T)
+si_pl <- si$si_pl |>
+  kableExtra::kbl(full_width = FALSE, position = "left") |>
+  kableExtra::kable_minimal()
+```
+
+::: {.panel-tabset .nav-pills}
+
+### Platform
+
+```{r}
+si_pl
+```
+
+### Packages
+
+```{r}
+si_pkg
+```
+
+:::

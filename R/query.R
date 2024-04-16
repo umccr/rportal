@@ -32,8 +32,11 @@ portaldb_connect <- function() {
 portaldb_query <- function(query = NULL) {
   assertthat::assert_that(!is.null(query))
   con <- portaldb_connect()
-  RAthena::dbGetQuery(con, query) |>
+  cli::cli_alert_info("Running following SQL query:\n{query}")
+  d <- RAthena::dbGetQuery(con, query) |>
     tibble::as_tibble()
+  DBI::dbDisconnect(con)
+  return(d)
 }
 
 #' PortalDB Query Table
@@ -57,7 +60,7 @@ portaldb_query <- function(query = NULL) {
 portaldb_query_table <- function(query = NULL, table = "data_portal_workflow") {
   assertthat::assert_that(!is.null(query))
   wf_table <- glue('"data_portal"."data_portal"."{table}"')
-  q1 <- glue('SELECT * FROM {wf_table} {query}')
+  q1 <- glue("SELECT * FROM {wf_table} {query}")
   portaldb_query(q1)
 }
 

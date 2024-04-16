@@ -80,7 +80,7 @@ meta_umccrise <- function(pmeta, status = "Succeeded") {
     )
   d |>
     dplyr::select(
-      meta_main_cols(),
+      dplyr::all_of(meta_main_cols()),
       -dplyr::any_of(c("sequence_run", "batch_run")), # NA for umccrise
       "SubjectID",
       "LibraryID_tumor",
