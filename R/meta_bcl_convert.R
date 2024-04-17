@@ -31,9 +31,11 @@ meta_bcl_convert <- function(pmeta, status = "Succeeded") {
       batch_name = purrr::map(.data$input, list("settings_by_samples", "batch_name")),
       samples = purrr::map(.data$input, list("settings_by_samples", "samples")),
       runfolder_name = purrr::map_chr(.data$input, "runfolder_name"),
+      gds_indir_bcl = purrr::map_chr(.data$input, list("bcl_input_directory", "location"), .default = NA),
       # output
       gds_outdir_multiqc = purrr::map_chr(.data$output, list("bclconvert_multiqc_out", "location"), .default = NA),
       gds_outdir_multiqc_interop = purrr::map_chr(.data$output, list("interop_multiqc_out", "location"), .default = NA),
+      gds_outdirs_fastq = purrr::map(.data$output, list("fastq_directories", "location"), .default = NA),
     ) |>
     dplyr::rowwise() |>
     dplyr::mutate(
@@ -62,7 +64,9 @@ meta_bcl_convert <- function(pmeta, status = "Succeeded") {
       "topup_or_rerun",
       "batch_name",
       "runfolder_name",
+      "gds_indir_bcl",
       "gds_outdir_multiqc",
       "gds_outdir_multiqc_interop",
+      "gds_outdirs_fastq"
     )
 }
