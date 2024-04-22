@@ -9,6 +9,11 @@
 #'   system.file(package = "rportal") |>
 #'   readr::read_rds()
 #' (m <- meta_bcl_convert(pmeta))
+#' \dontrun{
+#' q1 <- glue("WHERE \"type_name\" = 'bcl_convert' ORDER BY \"start\" DESC LIMIT 4;")
+#' pmeta_raw <- portaldb_query_workflow(q1)
+#' m2 <- meta_bcl_convert(pmeta)
+#' }
 #' @testexamples
 #' expect_equal(sum(!is.na(m$topup_or_rerun)), 0)
 #' expect_equal(length(unique(m$portal_run_id)), 4)
@@ -35,7 +40,7 @@ meta_bcl_convert <- function(pmeta, status = "Succeeded") {
       # output
       gds_outdir_multiqc = purrr::map_chr(.data$output, list("bclconvert_multiqc_out", "location"), .default = NA),
       gds_outdir_multiqc_interop = purrr::map_chr(.data$output, list("interop_multiqc_out", "location"), .default = NA),
-      gds_outdirs_fastq = purrr::map(.data$output, list("fastq_directories", "location"), .default = NA),
+      gds_outdirs_fastq = purrr::map(.data$output, list("fastq_directories", "location"), .default = NA)
     ) |>
     dplyr::rowwise() |>
     dplyr::mutate(
@@ -56,6 +61,7 @@ meta_bcl_convert <- function(pmeta, status = "Succeeded") {
   d |>
     tidyr::separate_wider_regex("sample", c(sampleid = ".*", "_", libid1 = "L.*"), cols_remove = FALSE) |>
     tidyr::separate_wider_regex("libid1", c(libid2 = ".*", "_", topup_or_rerun = ".*"), cols_remove = FALSE, too_few = "align_start") |>
+    dplyr::mutate(gds_outdir_reports = file.path(dirname(.data$gds_outdir_multiqc), .data$batch_name, "Reports")) |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
       -dplyr::any_of(c("batch_run")), # NA for bcl_convert
@@ -64,9 +70,10 @@ meta_bcl_convert <- function(pmeta, status = "Succeeded") {
       "topup_or_rerun",
       "batch_name",
       "runfolder_name",
-      "gds_indir_bcl",
+      "gds_outdirs_fastq",
+      "gds_outdir_reports",
       "gds_outdir_multiqc",
       "gds_outdir_multiqc_interop",
-      "gds_outdirs_fastq"
+      "gds_indir_bcl"
     )
 }

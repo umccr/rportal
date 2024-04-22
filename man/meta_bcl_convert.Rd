@@ -22,4 +22,9 @@ pmeta <- "extdata/portaldb_workflow_top4.rds" |>
   system.file(package = "rportal") |>
   readr::read_rds()
 (m <- meta_bcl_convert(pmeta))
+\dontrun{
+q1 <- glue("WHERE \"type_name\" = 'bcl_convert' ORDER BY \"start\" DESC LIMIT 4;")
+pmeta_raw <- portaldb_query_workflow(q1)
+m2 <- meta_bcl_convert(pmeta)
+}
 }

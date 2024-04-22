@@ -27,8 +27,8 @@ format:
       body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
-  date_start: "2024-04-13"
-  date_end: "2024-04-16"
+  date_start: "2024-04-16"
+  date_end: "2024-04-21"
 ---
 
 ```{r}
@@ -61,8 +61,8 @@ source(here("inst/reports/seqrunsum/funcs.R"))
 
 ```{r eval=interactive()}
 params <- list(
-  date_start = "2024-04-13",
-  date_end = "2024-04-16"
+  date_start = "2024-04-16",
+  date_end = "2024-04-21"
 )
 ```
 
@@ -72,7 +72,8 @@ params <- list(
 fmt1 <- "%Y-%m-%dT%H:%M:%S"
 dstart <- params$date_start
 dend <- params$date_end
-date_start <- as.POSIXct(glue("{dstart}T00:00:01"), format = fmt1)
+# TODO: change this back to 00:00:01
+date_start <- as.POSIXct(glue("{dstart}T18:00:01"), format = fmt1)
 date_end <- as.POSIXct(glue("{dend}T23:59:59"), format = fmt1)
 wfs <- tibble::tribble(
   ~name,
@@ -108,7 +109,10 @@ stopifnot(all(pmeta_raw[["type_name"]] %in% wfs[["name"]]))
 ```{r}
 #| label: tidy_workflow_table
 pmeta <- pmeta_raw |>
-  filter(.data$start >= date_start, is.na(.data$end) | .data$end <= date_end) |>
+  filter(
+    .data$start >= date_start,
+    is.na(.data$end) | .data$end <= date_end
+  ) |>
   mutate(type_name = factor(.data$type_name, levels = wfs[["name"]]))
 status <- c("Succeeded", "Running", "Failed", "Aborted")
 # list of tidy tbls per wf
@@ -181,7 +185,7 @@ runtime_vis_height <- 5 + (nrow(pmeta_sumy) * 0.35)
 
 ```{r}
 #| label: status_count_tbl
-funcs$status_count_tbl(pmeta_status_count)
+funcs$status_count_tbl(pmeta_status_count, height = 1000, width = 500)
 ```
 
 ### Workflow Counts Per Subject
