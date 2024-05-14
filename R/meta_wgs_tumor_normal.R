@@ -20,6 +20,16 @@ meta_wgs_tumor_normal <- function(pmeta, status = "Succeeded") {
       .data$type_name == type,
       .data$end_status %in% status
     )
+  extract_fq_reads <- function(x, fq) {
+    fq_df <- x[[fq]]
+    if (is.null(fq_df)) {
+      return(NA)
+    }
+    read1 <- fq_df[["read_1"]][["location"]]
+    read2 <- fq_df[["read_2"]][["location"]]
+    assertthat::assert_that(length(read1) == length(read2))
+    tibble::tibble(read1 = read1, read2 = read2)
+  }
   extract_fqlist_el <- function(x, fq, y) {
     val <- x[[fq]][[y]]
     if (!is.null(val)) {
@@ -35,6 +45,8 @@ meta_wgs_tumor_normal <- function(pmeta, status = "Succeeded") {
     meta_io_fromjson() |>
     dplyr::mutate(
       # input
+      fastq_normal = purrr::map(.data$input, extract_fq_reads, "fastq_list_rows"),
+      fastq_tumor = purrr::map(.data$input, extract_fq_reads, "tumor_fastq_list_rows"),
       SampleID_normal = purrr::map_chr(.data$input, extract_fqlist_el, "fastq_list_rows", "rgsm"),
       SampleID_tumor = purrr::map_chr(.data$input, extract_fqlist_el, "tumor_fastq_list_rows", "rgsm"),
       LibraryID_normal = purrr::map_chr(.data$input, extract_fqlist_el, "fastq_list_rows", "rglb"),
@@ -59,6 +71,8 @@ meta_wgs_tumor_normal <- function(pmeta, status = "Succeeded") {
       "LibraryID_normal",
       "SampleID_tumor",
       "SampleID_normal",
+      "fastq_tumor",
+      "fastq_normal",
       "gds_infile_dragen_ref_tar",
       "gds_outdir_dragen_somatic",
       "gds_outdir_dragen_germline",
