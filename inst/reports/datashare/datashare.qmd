@@ -25,16 +25,18 @@ format:
     grid:
       body-width: 1300px
 params:
-  SubjectID: SBJ03144
-  LibraryID_tumor: L2301290
+  subject_id: SBJ03144
+  library_id_tumor: L2301290
+  csv_output: SBJ03144__L2301290_urls.csv
 ---
 
 ```{r eval=interactive()}
 #| label: params_interactive
 
 params <- list(
-  SubjectID = "SBJ03144",
-  LibraryID_tumor = "L2301290"
+  subject_id = "SBJ03144",
+  library_id_tumor = "L2301290",
+  csv_output = "SBJ03144__L2301290_urls.csv"
 )
 ```
 
@@ -42,8 +44,9 @@ params <- list(
 ```{r}
 #| label: params_read
 
-SubjectID <- params$SubjectID
-LibraryID_tumor <- params$LibraryID
+SubjectID <- params$subject_id
+LibraryID_tumor <- params$library_id_tumor
+csv_output <- params$csv_output
 ```
 
 
@@ -131,17 +134,27 @@ valid ICA v1 access token. This is required to access the files on GDS.
 First we query the `workflow` table for umccrise inputs and outputs.
 
 ```{r}
-#| label: aws_envvar_print
-#| eval: false
+#| label: envvar_checker
 
-tibble(var = c("ACCESS_KEY_ID", "SECRET_ACCESS_KEY", "REGION")) |>
-  mutate(
-    secret = ifelse(var %in% c("ACCESS_KEY_ID", "SECRET_ACCESS_KEY"), TRUE, FALSE),
-    var = glue("AWS_{var}"),
-    value = Sys.getenv(var),
-    value = ifelse(secret & nchar(value) > 0, gsub(".", "*", value), value)
+envvar_undefined <- function() {
+  env <- tibble(
+    var = c(
+      "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "ICA_ACCESS_TOKEN"
+    )
   ) |>
-  select(var, value)
+    mutate(
+      value = Sys.getenv(.data$var),
+      defined = nchar(.data$value) > 0,
+    ) |>
+    filter(!defined) |>
+    pull("var")
+  env
+}
+env_und <- envvar_undefined()
+if (length(env_und) > 0) {
+  e <- paste(env_und, collapse = ", ")
+  cli::cli_abort("Following AWS environment variables not defined: {e}")
+}
 ```
 
 
@@ -250,7 +263,9 @@ if (nrow(fq_urls) == 0) {
     "No FASTQs were found for {SubjectID}__{LibraryID_tumor}"
   )
 }
-if ((nrow(d_um_urls2) != nrow(tn_files)) || ((nrow(d_um_urls1) != nrow(umccrise_files)))) {
+fq_urls <- fq_urls |>
+  mutate(type = sub("fastq", "FASTQ", .data$type))
+if ((nrow(d_um_urls2) != nrow(tn_files)) | ((nrow(d_um_urls1) != nrow(umccrise_files)))) {
   # files were not found? might also have files with the same pattern matching,
   # though I have not encountered any such cases.
   cli::cli_alert_danger(
@@ -258,28 +273,21 @@ if ((nrow(d_um_urls2) != nrow(tn_files)) || ((nrow(d_um_urls1) != nrow(umccrise_
     "Contact the UMCCR bioinformatics team."
   )
 }
-urls_um <- bind_rows(d_um_urls1, d_um_urls2, fq_urls)
+urls_all <- bind_rows(d_um_urls1, d_um_urls2, fq_urls) |>
+  arrange(type) |>
+  mutate(
+    n = row_number(),
+    path = sub("gds://", "", .data$path)
+  ) |>
+  relocate(n)
 ```
 
 ## Results
 
 ```{r}
-#| label: umccrise_results
-urls_um |>
-  mutate(
-    N = row_number(),
-    url = glue("<a href='FAKE'>URL</a>"),
-    size = as.character(size)
-  ) |>
-  select(N, type, bname, size, url_download = url, path) |>
-  DT::datatable(
-    escape = FALSE,
-    filter = list(position = "top", clear = FALSE, plain = TRUE),
-    class = "cell-border display compact",
-    rownames = FALSE, extensions = c("Scroller", "Buttons", "KeyTable"),
-    options = list(
-      scroller = TRUE, scrollY = 400, scrollX = TRUE, autoWidth = FALSE, keys = TRUE,
-      buttons = c("csv", "excel"), dom = "Blfrtip"
-    )
-  )
+#| label: results
+
+urls_all |> glimpse()
+urls_all |>
+  readr::write_csv(csv_output)
 ```
