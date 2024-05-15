@@ -1,0 +1,70 @@
+---
+output:
+  github_document:
+    toc: true
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+knitr::knit_hooks$set(
+  prompt = function(before, options, envir) {
+    options(prompt = if (options$engine %in% c("sh", "bash")) "$ " else "R> ")
+  }
+)
+```
+
+```{r pkg_load, warning=FALSE, message=FALSE, echo=FALSE}
+require(rportal)
+```
+
+# 🔮 rportal - Interacting with the UMCCR Portal
+
+
+## 🍕 Installation
+
+```r
+devtools::install_github("umccr/rportal")
+# remotes::install_github("umccr/rportal")
+```
+
+
+## 🌀 CLI
+
+{rportal} currently has one convenience wrapper for generating presigned URLs for
+bioinformatics data (FASTQs, BAMs, VCFs and HTMLs/TSVs):
+
+### Bioinformatics Data Sharing
+
+A `datashare.R` command line interface is available for convenience.
+You need to export the `rportal/inst/datashare/` directory to your `PATH` in order to use `datashare.R`:
+
+```{bash eval=FALSE, echo=TRUE}
+datashare_cli=$(Rscript -e 'x = system.file("scripts/datashare", package = "rportal"); cat(x, "\n")' | xargs)
+export PATH="${datashare_cli}:${PATH}"
+```
+
+```{bash prompt=TRUE, echo=FALSE}
+datashare_cli=$(Rscript -e 'x = system.file("scripts/datashare", package = "rportal"); cat(x, "\n")' | xargs)
+export PATH="${datashare_cli}:${PATH}"
+
+echo "#-----------------------------------#"
+echo "datashare.R --help" & datashare.R --help
+echo ""
+```
+
+## 🚕 Running
+
+```bash
+datashare.R \
+  --subject_id SBJ0XXXX \
+  --library_id_tumor L230XXXX \
+  --csv_output urls_SBJ0XXXX_L230XXXX.csv
+```
+

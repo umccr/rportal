@@ -1,0 +1,293 @@
+---
+title: "BioinfoData Sharing"
+author: "UMCCR - Genomics Platform Group"
+date: now
+date-format: "YYYY-MM-DD HH:mm Z"
+execute:
+  echo: true
+  eval: true
+format:
+  html:
+    toc: true
+    toc-expand: 3
+    toc-title: Contents
+    toc-location: body
+    highlight-style: github
+    number-sections: false
+    link-external-icon: true
+    link-external-newwindow: true
+    embed-resources: true
+    code-copy: true
+    code-link: true
+    code-fold: true
+    code-block-border-left: true
+    smooth-scroll: true
+    grid:
+      body-width: 1300px
+params:
+  subject_id: SBJ03144
+  library_id_tumor: L2301290
+  csv_output: SBJ03144__L2301290_urls.csv
+---
+
+```{r eval=interactive()}
+#| label: params_interactive
+
+params <- list(
+  subject_id = "SBJ03144",
+  library_id_tumor = "L2301290",
+  csv_output = "SBJ03144__L2301290_urls.csv"
+)
+```
+
+
+```{r}
+#| label: params_read
+
+SubjectID <- params$subject_id
+LibraryID_tumor <- params$library_id_tumor
+csv_output <- params$csv_output
+```
+
+
+```{r}
+#| label: pkg_load
+#| message: false
+
+# install following from UMCCR GitHub, rest are from CRAN
+# devtools::install_github("umccr/rportal")
+# devtools::install_github("umccr/dracarys")
+require(cli, include.only = "cli_alert_info")
+require(dplyr)
+require(dracarys, include.only = "gds_files_list_filter_relevant")
+require(DT, include.only = "datatable")
+require(glue, include.only = "glue")
+require(rportal, include.only = "meta_umccrise")
+require(tidyr)
+```
+
+## Introduction
+
+Here we're generating a table with paths and presigned URLs to the main results
+from our WGS bioinformatic workflows given a specific SubjectID and tumor LibraryID.
+
+### Process
+
+- Given a SubjectID and tumor LibraryID, query the PortalDB `workflow` table
+  for the `umccrise` workflow and:
+  - if there are no runs returned, error out.
+  - if there are more than one runs returned, take the more recent one.
+  - tidy the results, then extract:
+    - the location of the input DRAGEN somatic directory (with the tumor & normal BAM files)
+    - the location of the output umccrise directory (with the VCF, HTML and TSV files)
+    - the normal LibraryID which can be used next
+
+- Given a SubjectID and tumor LibraryID, query the PortalDB `workflow` table
+  for the `wgs_tumor_normal` workflow and:
+  - if there are no runs returned, error out.
+  - tidy the results, then:
+    - keep runs that have a `gds_outdir_dragen_somatic` location equal to the
+    `gds_indir_dragen_somatic` location from the tidy umccrise table.
+    - extract the location of the input tumor and normal FASTQ files.
+
+Given the directories containing the umccrise, DRAGEN, and FASTQ files, we can
+generate presigned URLs for the files of interest using the ICA v1 API.
+
+```{r}
+#| label: file_regexes
+
+umccrise_files <- tribble(
+  ~regex, ~fun,
+  "multiqc_report\\.html$", "HTML_MultiQC",
+  "somatic\\.pcgr\\.html$", "HTML_PCGR",
+  "normal\\.cpsr\\.html$", "HTML_CPSR",
+  "cancer_report\\.html$", "HTML_CanRep",
+  "germline\\.predispose_genes\\.vcf\\.gz$", "VCF_Germline",
+  "germline\\.predispose_genes\\.vcf\\.gz\\.tbi$", "VCFi_Germline",
+  "somatic-PASS\\.vcf\\.gz$", "VCF_Somatic",
+  "somatic-PASS\\.vcf\\.gz\\.tbi$", "VCFi_Somatic",
+  "somatic\\.pcgr\\.snvs_indels\\.tiers\\.tsv$", "TSV_SmallVariantsSomatic",
+  "manta\\.tsv$", "TSV_StructuralVariantsManta",
+  "manta\\.vcf\\.gz$", "VCF_StructuralVariantsManta",
+  "manta\\.vcf\\.gz.tbi$", "VCFi_StructuralVariantsManta",
+  "purple\\.cnv\\.gene\\.tsv$", "TSV_CopyNumberVariantsPurpleGene",
+  "purple\\.cnv\\.somatic\\.tsv$", "TSV_CopyNumberVariantsPurpleSegments"
+)
+
+tn_files <- tribble(
+  ~regex, ~fun,
+  "tumor\\.bam$", "BAM_tumor",
+  "tumor\\.bam\\.bai$", "BAMi_tumor",
+  "normal\\.bam$", "BAM_normal",
+  "normal\\.bam\\.bai$", "BAMi_normal",
+)
+```
+
+## Analysis
+
+- **NOTE1**: make sure you have logged into AWS prior to running the below and that
+the standard `AWS_*` environment variables have been sourced in the current R session.
+This is required to access the UMCCR data portal database.
+- **NOTE2**: make sure the `ICA_ACCESS_TOKEN` environment variable contains a
+valid ICA v1 access token. This is required to access the files on GDS.
+
+First we query the `workflow` table for umccrise inputs and outputs.
+
+```{r}
+#| label: envvar_checker
+
+envvar_undefined <- function() {
+  env <- tibble(
+    var = c(
+      "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "ICA_ACCESS_TOKEN"
+    )
+  ) |>
+    mutate(
+      value = Sys.getenv(.data$var),
+      defined = nchar(.data$value) > 0,
+    ) |>
+    filter(!defined) |>
+    pull("var")
+  env
+}
+env_und <- envvar_undefined()
+if (length(env_und) > 0) {
+  e <- paste(env_und, collapse = ", ")
+  cli::cli_abort("Following AWS environment variables not defined: {e}")
+}
+```
+
+
+```{r}
+#| label: portaldb_wf_um
+# invisible(capture.output(rportal::awsvault_profile("upro")))
+token_ica <- Sys.getenv("ICA_ACCESS_TOKEN") |> dracarys::ica_token_validate()
+# select all rows from the workflow table with the following conditions
+query_um <- glue(
+  "WHERE \"type_name\" = 'umccrise' AND  \"end_status\" = 'Succeeded' AND ",
+  "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__umccrise__{SubjectID}__{LibraryID_tumor}') ",
+  "ORDER BY \"start\" DESC;"
+)
+d_um_raw <- rportal::portaldb_query_workflow(query_um)
+n_um_runs <- nrow(d_um_raw)
+if (n_um_runs == 0) {
+  cli::cli_abort("ERROR: No umccrise results found for {SubjectID}__{LibraryID_tumor}")
+} else if (n_um_runs > 1) {
+  d_um_raw <- d_um_raw |> dplyr::slice_head(n = 1)
+  msg <- glue(
+    "There are {n_um_runs} > 1 umccrise workflows run for ",
+    "{SubjectID}__{LibraryID_tumor};\n",
+    "We use the latest run with portal_run_id=\"{d_um_raw$portal_run_id}\" ",
+    "which ended at {d_um_raw$end}."
+  )
+  cli::cli_alert_info(msg)
+}
+d_um_tidy <- rportal::meta_umccrise(d_um_raw)
+um_dragen_input <- d_um_tidy[["gds_indir_dragen_somatic"]]
+assertthat::assert_that(!is.na(um_dragen_input))
+```
+
+```{r}
+#| label: portaldb_wf_tn
+
+query_tn <- glue(
+  "WHERE \"type_name\" = 'wgs_tumor_normal' AND  \"end_status\" = 'Succeeded' AND ",
+  "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__wgs_tumor_normal__{SubjectID}__{LibraryID_tumor}') ",
+  "ORDER BY \"start\" DESC;"
+)
+d_tn_raw <- rportal::portaldb_query_workflow(query_tn)
+if (nrow(d_tn_raw) == 0) {
+  cli::cli_abort("ERROR: No wgs_tumor_normal results found for {SubjectID}__{LibraryID_tumor}")
+}
+d_tn_tidy <- rportal::meta_wgs_tumor_normal(d_tn_raw)
+n_tn_runs <- nrow(d_tn_tidy)
+if (n_tn_runs > 1) {
+  if (um_dragen_input %in% d_tn_tidy[["gds_outdir_dragen_somatic"]]) {
+    msg <- glue(
+      "There are {n_tn_runs} > 1 wgs_tumor_normal workflows run for ",
+      "{SubjectID}__{LibraryID_tumor}\n",
+      "We use the run which output somatic results into the following location:\n{um_dragen_input}"
+    )
+    cli::cli_alert_info(msg)
+  } else {
+    msg <- glue(
+      "ERROR: No wgs_tumor_normal results found for {SubjectID}__{LibraryID_tumor} ",
+      "with a gds_outdir_dragen_somatic of {um_dragen_input}"
+    )
+    cli::cli_abort(msg)
+  }
+}
+d_tn_tidy <- d_tn_tidy |>
+  dplyr::filter(.data$gds_outdir_dragen_somatic == um_dragen_input)
+assertthat::assert_that(nrow(d_tn_tidy) == 1)
+```
+
+```{r}
+#| label: extract_stuff
+
+SampleID_tumor <- d_um_tidy[["SampleID_tumor"]]
+LibraryID_normal <- d_um_tidy[["LibraryID_normal"]]
+sbjid_sampid_dir <- glue("{SubjectID}__{SampleID_tumor}")
+umccrise_dir <- file.path(d_um_tidy[["gds_outdir_umccrise"]], sbjid_sampid_dir)
+d_um_urls1 <- dracarys::gds_files_list_filter_relevant(
+  gdsdir = umccrise_dir, token = token_ica,
+  include_url = TRUE, page_size = 500, regexes = umccrise_files
+)
+d_um_urls2 <- dracarys::gds_files_list_filter_relevant(
+  gdsdir = d_um_tidy[["gds_indir_dragen_somatic"]], token = token_ica,
+  include_url = TRUE, page_size = 500, regexes = tn_files
+)
+fq_list <- d_tn_tidy |>
+  select("fastq_tumor", "fastq_normal") |>
+  pivot_longer(cols = c("fastq_tumor", "fastq_normal"), names_to = "fastq_tn") |>
+  unnest("value") |>
+  mutate(id = row_number(), .by = "fastq_tn") |>
+  pivot_longer(cols = c("read1", "read2"), names_to = "read", values_to = "path") |>
+  mutate(
+    fastq_id = glue("{.data$fastq_tn}_{.data$id}_{.data$read}"),
+    fastq_dir = dirname(.data$path),
+    path = basename(.data$path)
+  ) |>
+  select(fun = "fastq_id", regex = "path", "fastq_dir") |>
+  split(~fastq_dir)
+fq_urls <- NULL
+for (outdir in names(fq_list)) {
+  fq_urls_tmp <- dracarys::gds_files_list_filter_relevant(
+    gdsdir = outdir, token = token_ica,
+    include_url = TRUE, page_size = 500, regexes = fq_list[[outdir]]
+  )
+  fq_urls <- bind_rows(fq_urls, fq_urls_tmp)
+}
+if (nrow(fq_urls) == 0) {
+  cli::cli_alert_danger(
+    "No FASTQs were found for {SubjectID}__{LibraryID_tumor}"
+  )
+}
+fq_urls <- fq_urls |>
+  mutate(type = sub("fastq", "FASTQ", .data$type))
+if ((nrow(d_um_urls2) != nrow(tn_files)) | ((nrow(d_um_urls1) != nrow(umccrise_files)))) {
+  # files were not found? might also have files with the same pattern matching,
+  # though I have not encountered any such cases.
+  cli::cli_alert_danger(
+    "There was not a 1-1 match between files requested and files found. ",
+    "Contact the UMCCR bioinformatics team."
+  )
+}
+urls_all <- bind_rows(d_um_urls1, d_um_urls2, fq_urls) |>
+  arrange(type) |>
+  mutate(
+    n = row_number(),
+    path = sub("gds://", "", .data$path)
+  ) |>
+  relocate(n)
+```
+
+## Results
+
+```{r}
+#| label: results
+
+urls_all |> glimpse()
+urls_all |>
+  readr::write_csv(csv_output)
+```

@@ -14,3 +14,11 @@ meta_main_cols <- function() {
     "start", "end", "portal_run_id"
   )
 }
+
+#' @noRd
+dummy1 <- function() {
+  # Solves R CMD check: Namespaces in Imports field not imported from
+  dracarys::gds_files_list_filter_relevant
+  optparse::make_option
+  fs::dir_create
+}

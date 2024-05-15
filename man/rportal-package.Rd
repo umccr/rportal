@@ -6,7 +6,7 @@
 \alias{rportal-package}
 \title{rportal: UMCCR Portal R Functions}
 \description{
-Contains functionality for interacting with the UMCCR Data Portal.
+Contains R functionality for interacting with the UMCCR Data Portal.
 }
 \seealso{
 Useful links:
