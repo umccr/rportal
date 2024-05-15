@@ -48,6 +48,7 @@ fs::dir_create(dirname(csv_output))
 ## ---------------------------------------------------------------------------------------------------------------------------------
 #| label: file_regexes
 
+cli::cli_alert_info("Start datasharing for {SubjectID}__{LibraryID_tumor}")
 umccrise_files <- tribble(
   ~regex, ~fun,
   "multiqc_report\\.html$", "HTML_MultiQC",
@@ -230,3 +231,5 @@ urls_all <- bind_rows(d_um_urls1, d_um_urls2, fq_urls) |>
 cli::cli_alert_success("Writing {nrow(urls_all)} URL entries to {csv_output}")
 urls_all |>
   readr::write_csv(csv_output)
+
+cli::cli_alert_success("Completed datasharing for {SubjectID}__{LibraryID_tumor}")
