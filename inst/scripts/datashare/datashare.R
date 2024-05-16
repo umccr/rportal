@@ -4,10 +4,17 @@ suppressMessages(library(optparse, include.only = "make_option"))
 option_list <- list(
   optparse::make_option("--subject_id", type = "character", help = "Subject ID."),
   optparse::make_option("--library_id_tumor", type = "character", help = "Library ID of tumor."),
-  optparse::make_option("--csv_output", type = "character", help = "CSV output path (def: ./urls_<subject_id>__<library_id_tumor>.csv).")
+  optparse::make_option("--csv_output", type = "character", help = "CSV output path."),
+  optparse::make_option("--append", action = "store_true", help = "Append to existing file (or write to new one if file does not exist -- caution: no column headers are written)."),
+  optparse::make_option(c("--version", "-v"), action = "store_true", help = "Print rportal version and exit.")
 )
 parser <- optparse::OptionParser(option_list = option_list, formatter = optparse::TitledHelpFormatter)
 opt <- optparse::parse_args(parser)
+
+if (!is.null(opt[["version"]])) {
+  cat(as.character(packageVersion("rportal")), "\n")
+  quit("no", status = 0, runLast = FALSE)
+}
 
 # install following from UMCCR GitHub, rest are from CRAN
 # devtools::install_github("umccr/rportal")
@@ -22,7 +29,7 @@ suppressMessages(library(rportal, include.only = "meta_umccrise"))
 suppressMessages(library(tidyr, include.only = c("pivot_longer", "unnest")))
 
 missing_flags <- NULL
-for (flag in c("subject_id", "library_id_tumor")) {
+for (flag in c("subject_id", "library_id_tumor", "csv_output")) {
   if (is.null(opt[[flag]])) {
     missing_flags <- c(missing_flags, flag)
   }
@@ -32,8 +39,8 @@ if (length(missing_flags) > 0) {
   cli::cli_abort("Missing required flags: {tmp}")
 }
 
-if (is.null(opt[["csv_output"]])) {
-  opt[["csv_output"]] <- glue("urls_{opt[['subject_id']]}__{opt[['library_id_tumor']]}.csv")
+if (is.null(opt[["append"]])) {
+  opt[["append"]] <- FALSE
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------------------
@@ -42,6 +49,7 @@ if (is.null(opt[["csv_output"]])) {
 SubjectID <- opt[["subject_id"]]
 LibraryID_tumor <- opt[["library_id_tumor"]]
 csv_output <- opt[["csv_output"]]
+csv_append <- opt[["append"]]
 fs::dir_create(dirname(csv_output))
 
 
@@ -96,7 +104,7 @@ envvar_undefined <- function() {
 env_und <- envvar_undefined()
 if (length(env_und) > 0) {
   e <- paste(env_und, collapse = ", ")
-  cli::cli_abort("Following AWS environment variables not defined: {e}")
+  cli::cli_abort("Following environment variables not defined: {e}")
 }
 
 
@@ -218,18 +226,16 @@ if ((nrow(d_um_urls2) != nrow(tn_files)) | ((nrow(d_um_urls1) != nrow(umccrise_f
 urls_all <- bind_rows(d_um_urls1, d_um_urls2, fq_urls) |>
   arrange(type) |>
   mutate(
-    n = row_number(),
+    sbjid_libid = glue("{SubjectID}__{LibraryID_tumor}"),
     path = sub("gds://", "", .data$path),
     size = trimws(as.character(.data$size))
   ) |>
-  relocate(n)
-
+  relocate("sbjid_libid")
 
 ## ---------------------------------------------------------------------------------------------------------------------------------
 #| label: results
 
 cli::cli_alert_success("Writing {nrow(urls_all)} URL entries to {csv_output}")
 urls_all |>
-  readr::write_csv(csv_output)
-
+  readr::write_csv(csv_output, append = csv_append)
 cli::cli_alert_success("Completed datasharing for {SubjectID}__{LibraryID_tumor}")
