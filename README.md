@@ -34,7 +34,7 @@ export PATH="${datashare_cli}:${PATH}"
 ```
 
     datashare.R --version
-    0.1.0 
+    0.1.1 
 
     #-----------------------------------#
     datashare.R --help
