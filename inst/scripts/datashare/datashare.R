@@ -4,7 +4,7 @@ suppressMessages(library(optparse, include.only = "make_option"))
 option_list <- list(
   optparse::make_option("--subject_id", type = "character", help = "Subject ID."),
   optparse::make_option("--library_id_tumor", type = "character", help = "Library ID of tumor."),
-  optparse::make_option("--csv_output", type = "character", help = "CSV output path (def: ./urls_<subject_id>__<library_id_tumor>.csv)."),
+  optparse::make_option("--csv_output", type = "character", help = "CSV output path."),
   optparse::make_option("--append", action = "store_true", help = "Append to existing file (or write to new one if file does not exist -- caution: no column headers are written).")
 )
 parser <- optparse::OptionParser(option_list = option_list, formatter = optparse::TitledHelpFormatter)
@@ -23,7 +23,7 @@ suppressMessages(library(rportal, include.only = "meta_umccrise"))
 suppressMessages(library(tidyr, include.only = c("pivot_longer", "unnest")))
 
 missing_flags <- NULL
-for (flag in c("subject_id", "library_id_tumor")) {
+for (flag in c("subject_id", "library_id_tumor", "csv_output")) {
   if (is.null(opt[[flag]])) {
     missing_flags <- c(missing_flags, flag)
   }
@@ -31,10 +31,6 @@ for (flag in c("subject_id", "library_id_tumor")) {
 if (length(missing_flags) > 0) {
   tmp <- paste(missing_flags, collapse = ", ")
   cli::cli_abort("Missing required flags: {tmp}")
-}
-
-if (is.null(opt[["csv_output"]])) {
-  opt[["csv_output"]] <- glue("urls_{opt[['subject_id']]}__{opt[['library_id_tumor']]}.csv")
 }
 
 if (is.null(opt[["append"]])) {
