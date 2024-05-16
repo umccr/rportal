@@ -1,6 +1,6 @@
 
-- [🔮 rportal - Interacting with the UMCCR
-  Portal](#-rportal---interacting-with-the-umccr-portal)
+- [🔮 rportal - Interacting with the UMCCR Data
+  Portal](#-rportal---interacting-with-the-umccr-data-portal)
   - [🍕 Installation](#-installation)
   - [🌀 CLI](#-cli)
     - [Bioinformatics Data Sharing](#bioinformatics-data-sharing)
@@ -8,7 +8,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# 🔮 rportal - Interacting with the UMCCR Portal
+# 🔮 rportal - Interacting with the UMCCR Data Portal
 
 ## 🍕 Installation
 
@@ -25,13 +25,16 @@ URLs for bioinformatics data (FASTQs, BAMs, VCFs and HTMLs/TSVs):
 ### Bioinformatics Data Sharing
 
 A `datashare.R` command line interface is available for convenience. You
-need to export the `rportal/inst/datashare/` directory to your `PATH` in
-order to use `datashare.R`:
+need to export the `rportal/inst/scripts/datashare/` directory to your
+`PATH` in order to use `datashare.R`:
 
 ``` bash
 datashare_cli=$(Rscript -e 'x = system.file("scripts/datashare", package = "rportal"); cat(x, "\n")' | xargs)
 export PATH="${datashare_cli}:${PATH}"
 ```
+
+    datashare.R --version
+    0.1.0 
 
     #-----------------------------------#
     datashare.R --help
@@ -50,7 +53,13 @@ export PATH="${datashare_cli}:${PATH}"
             Library ID of tumor.
 
     --csv_output=CSV_OUTPUT
-            CSV output path (def: ./urls_<subject_id>__<library_id_tumor>.csv).
+            CSV output path.
+
+    --append
+            Append to existing file (or write to new one if file does not exist -- caution: no column headers are written).
+
+    --version, -v
+            Print rportal version and exit.
 
     --help, -h
             Show this help message and exit

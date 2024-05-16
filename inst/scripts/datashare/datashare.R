@@ -5,10 +5,16 @@ option_list <- list(
   optparse::make_option("--subject_id", type = "character", help = "Subject ID."),
   optparse::make_option("--library_id_tumor", type = "character", help = "Library ID of tumor."),
   optparse::make_option("--csv_output", type = "character", help = "CSV output path."),
-  optparse::make_option("--append", action = "store_true", help = "Append to existing file (or write to new one if file does not exist -- caution: no column headers are written).")
+  optparse::make_option("--append", action = "store_true", help = "Append to existing file (or write to new one if file does not exist -- caution: no column headers are written)."),
+  optparse::make_option(c("--version", "-v"), action = "store_true", help = "Print rportal version and exit.")
 )
 parser <- optparse::OptionParser(option_list = option_list, formatter = optparse::TitledHelpFormatter)
 opt <- optparse::parse_args(parser)
+
+if (!is.null(opt[["version"]])) {
+  cat(as.character(packageVersion("rportal")), "\n")
+  quit("no", status = 0, runLast = FALSE)
+}
 
 # install following from UMCCR GitHub, rest are from CRAN
 # devtools::install_github("umccr/rportal")
@@ -98,7 +104,7 @@ envvar_undefined <- function() {
 env_und <- envvar_undefined()
 if (length(env_und) > 0) {
   e <- paste(env_und, collapse = ", ")
-  cli::cli_abort("Following AWS environment variables not defined: {e}")
+  cli::cli_abort("Following environment variables not defined: {e}")
 }
 
 
