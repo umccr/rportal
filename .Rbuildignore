@@ -7,6 +7,8 @@
 ^\.Rproj\.user$
 ^\.bumpversion\.cfg$
 ^\.dockerignore$
+^\.dvc$
+^\.dvcignore$
 ^\.github$
 ^\.pre-commit-config\.yaml$
 ^conda$
