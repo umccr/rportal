@@ -1,0 +1,4 @@
+[core]
+    remote = umccr_gdrive_rportal
+['remote "umccr_gdrive_rportal"']
+    url = gdrive://1n--_IOd1-ZRP863teZ0pbKooEPbjAiUD

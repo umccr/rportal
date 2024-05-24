@@ -27,8 +27,8 @@ format:
       body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
-  date_start: "2024-04-16"
-  date_end: "2024-04-21"
+  date_start: "2024-05-20"
+  date_end: "2024-05-22"
 ---
 
 ```{r}
@@ -61,8 +61,8 @@ source(here("inst/reports/seqrunsum/funcs.R"))
 
 ```{r eval=interactive()}
 params <- list(
-  date_start = "2024-04-16",
-  date_end = "2024-04-21"
+  date_start = "2024-05-20",
+  date_end = "2024-05-22"
 )
 ```
 
@@ -72,8 +72,7 @@ params <- list(
 fmt1 <- "%Y-%m-%dT%H:%M:%S"
 dstart <- params$date_start
 dend <- params$date_end
-# TODO: change this back to 00:00:01
-date_start <- as.POSIXct(glue("{dstart}T18:00:01"), format = fmt1)
+date_start <- as.POSIXct(glue("{dstart}T00:00:01"), format = fmt1)
 date_end <- as.POSIXct(glue("{dend}T23:59:59"), format = fmt1)
 wfs <- tibble::tribble(
   ~name,
