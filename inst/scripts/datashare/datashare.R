@@ -179,14 +179,25 @@ SampleID_tumor <- d_um_tidy[["SampleID_tumor"]]
 LibraryID_normal <- d_um_tidy[["LibraryID_normal"]]
 sbjid_sampid_dir <- glue("{SubjectID}__{SampleID_tumor}")
 umccrise_dir <- file.path(d_um_tidy[["gds_outdir_umccrise"]], sbjid_sampid_dir)
-d_um_urls1 <- dracarys::gds_files_list_filter_relevant(
-  gdsdir = umccrise_dir, token = token_ica,
-  include_url = TRUE, page_size = 500, regexes = umccrise_files
-)
-d_um_urls2 <- dracarys::gds_files_list_filter_relevant(
-  gdsdir = d_um_tidy[["gds_indir_dragen_somatic"]], token = token_ica,
-  include_url = TRUE, page_size = 500, regexes = tn_files
-)
+umccrise_work_dir <- file.path(d_um_tidy[["gds_outdir_umccrise"]], "work", sbjid_sampid_dir)
+amber_dir <- file.path(umccrise_work_dir, "purple/amber")
+cobalt_dir <- file.path(umccrise_work_dir, "purple/cobalt")
+d_um_urls1 <- umccrise_dir |>
+  dracarys::gds_files_list_filter_relevant(
+    token = token_ica, include_url = TRUE, page_size = 500, regexes = umccrise_files
+  )
+d_um_urls_amber <- amber_dir |>
+  dracarys::gds_files_list(token = token_ica, include_url = TRUE, page_size = 100) |>
+  mutate(type = "AMBER") |>
+  select("type", "bname", "size", "file_id", "path", "presigned_url")
+d_um_urls_cobalt <- cobalt_dir |>
+  dracarys::gds_files_list(token = token_ica, include_url = TRUE, page_size = 100) |>
+  mutate(type = "COBALT") |>
+  select("type", "bname", "size", "file_id", "path", "presigned_url")
+d_um_urls2 <- d_um_tidy[["gds_indir_dragen_somatic"]] |>
+  dracarys::gds_files_list_filter_relevant(
+    token = token_ica, include_url = TRUE, page_size = 500, regexes = tn_files
+  )
 fq_list <- d_tn_tidy |>
   select("fastq_tumor", "fastq_normal") |>
   pivot_longer(cols = c("fastq_tumor", "fastq_normal"), names_to = "fastq_tn") |>
@@ -225,6 +236,7 @@ if ((nrow(d_um_urls2) != nrow(tn_files)) | ((nrow(d_um_urls1) != nrow(umccrise_f
 }
 urls_all <- bind_rows(d_um_urls1, d_um_urls2, fq_urls) |>
   arrange(type) |>
+  bind_rows(d_um_urls_amber, d_um_urls_cobalt) |>
   mutate(
     sbjid_libid = glue("{SubjectID}__{LibraryID_tumor}"),
     path = sub("gds://", "", .data$path),
