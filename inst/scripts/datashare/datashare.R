@@ -182,10 +182,15 @@ umccrise_dir <- file.path(d_um_tidy[["gds_outdir_umccrise"]], sbjid_sampid_dir)
 umccrise_work_dir <- file.path(d_um_tidy[["gds_outdir_umccrise"]], "work", sbjid_sampid_dir)
 amber_dir <- file.path(umccrise_work_dir, "purple/amber")
 cobalt_dir <- file.path(umccrise_work_dir, "purple/cobalt")
+sigs_dir <- file.path(umccrise_dir, "cancer_report_tables/sigs")
 d_um_urls1 <- umccrise_dir |>
   dracarys::gds_files_list_filter_relevant(
     token = token_ica, include_url = TRUE, page_size = 500, regexes = umccrise_files
   )
+d_um_urls_sigs <- sigs_dir |>
+  dracarys::gds_files_list(token = token_ica, include_url = TRUE, page_size = 100) |>
+  mutate(type = "Signatures") |>
+  select("type", "bname", "size", "file_id", "path", "presigned_url")
 d_um_urls_amber <- amber_dir |>
   dracarys::gds_files_list(token = token_ica, include_url = TRUE, page_size = 100) |>
   mutate(type = "AMBER") |>
@@ -236,7 +241,7 @@ if ((nrow(d_um_urls2) != nrow(tn_files)) | ((nrow(d_um_urls1) != nrow(umccrise_f
 }
 urls_all <- bind_rows(d_um_urls1, d_um_urls2, fq_urls) |>
   arrange(type) |>
-  bind_rows(d_um_urls_amber, d_um_urls_cobalt) |>
+  bind_rows(d_um_urls_amber, d_um_urls_cobalt, d_um_urls_sigs) |>
   mutate(
     sbjid_libid = glue("{SubjectID}__{LibraryID_tumor}"),
     path = sub("gds://", "", .data$path),
