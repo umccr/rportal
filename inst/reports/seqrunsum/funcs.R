@@ -40,7 +40,7 @@ funcs <- list(
     clrs <- RColorBrewer::brewer.pal.info |>
       tibble::rownames_to_column(var = "name") |>
       tibble::as_tibble() |>
-      filter(name %in% c("Set3", "Set2", "Pastel2", "Pastel1")) |>
+      filter(name %in% c("Set3", "Set2", "Pastel2", "Pastel1", "Set1")) |>
       select(name, maxcolors) |>
       arrange(desc(name)) |>
       rowwise() |>

@@ -27,8 +27,8 @@ format:
       body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
-  date_start: "2024-05-20"
-  date_end: "2024-05-22"
+  date_start: "2024-05-30"
+  date_end: "2024-06-03"
 ---
 
 ```{r}
@@ -61,8 +61,8 @@ source(here("inst/reports/seqrunsum/funcs.R"))
 
 ```{r eval=interactive()}
 params <- list(
-  date_start = "2024-05-20",
-  date_end = "2024-05-22"
+  date_start = "2024-05-31",
+  date_end = "2024-06-03"
 )
 ```
 
@@ -98,6 +98,7 @@ wfs <- tibble::tribble(
 invisible(capture.output(rportal::awsvault_profile("upro")))
 query_wf <- glue('WHERE "start" >= date(\'{dstart}\') AND "start" <= date(\'{dend}\') ORDER BY "start" DESC;')
 pmeta_rds <- here(glue("nogit/data_portal/workflows/{as.Date(date_end)}.rds"))
+# fs::dir_create(here(glue("nogit/data_portal/workflows")))
 # pmeta_raw <- rportal::portaldb_query_workflow(query_wf)
 # saveRDS(pmeta_raw, file = pmeta_rds)
 pmeta_raw <- readr::read_rds(pmeta_rds)
@@ -127,6 +128,7 @@ sbjids <- funcs$get_ids(pmeta_tidy, "SubjectID") # not used anywhere (yet?)
 
 ```{r}
 #| label: query_limsrow_table
+# fs::dir_create(here(glue("nogit/data_portal/lims")))
 lims_rds <- here(glue("nogit/data_portal/lims/{as.Date(date_end)}.rds"))
 libidsq <- paste(libids, collapse = "|")
 query_lims <- glue("WHERE REGEXP_LIKE(\"library_id\", '{libidsq}');")
