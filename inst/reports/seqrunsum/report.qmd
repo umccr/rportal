@@ -27,8 +27,8 @@ format:
       body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
-  date_start: "2024-05-30"
-  date_end: "2024-06-03"
+  date_start: "2024-06-04"
+  date_end: "2024-06-12"
 ---
 
 ```{r}
