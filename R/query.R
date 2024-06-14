@@ -128,8 +128,8 @@ portaldb_query_limsrow <- function(query = NULL) {
 #' @export
 portaldb_query_fastqlistrow <- function(query = NULL) {
   portaldb_query_table(query = query, table = "data_portal_fastqlistrow")
+}
 
-  
 #' PortalDB Query labmetadata Table
 #'
 #' Queries the `data_portal_labmetadata` table with the given query.
