@@ -129,3 +129,25 @@ portaldb_query_limsrow <- function(query = NULL) {
 portaldb_query_fastqlistrow <- function(query = NULL) {
   portaldb_query_table(query = query, table = "data_portal_fastqlistrow")
 }
+
+#' PortalDB Query labmetadata Table
+#'
+#' Queries the `data_portal_labmetadata` table with the given query.
+#' Note this is simply a convenience function that prepends
+#' `SELECT * FROM "data_portal"."data_portal"."data_portal_labmetadata" ` to any
+#' `query` you provide.
+#' See examples.
+#'
+#' @param query SQL query string.
+#' @return Tibble with results from query.
+#'
+#' @examples
+#' \dontrun{
+#' libids <- shQuote(paste(c("L2400340", "L2400256"), collapse = "|"))
+#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
+#' portaldb_query_labmetadata(query)
+#' }
+#' @export
+portaldb_query_labmetadata <- function(query = NULL) {
+  portaldb_query_table(query = query, table = "data_portal_labmetadata")
+}
