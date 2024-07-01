@@ -1,6 +1,6 @@
 ---
 title: "{{< meta params.title >}}"
-subtitle: "Period: {{< meta params.date_start >}} to {{< meta params.date_end >}}"
+subtitle: "Period: `r paste(params$date_start, ' to ', params$date_end)`"
 author: "UMCCR - Genomics Platform Group"
 date: now
 date-format: "YYYY-MM-DD HH:mm Z"
@@ -86,14 +86,16 @@ wfs <- tibble::tribble(
 ```
 
 ```{r}
-#| label: query_workflow_table
+#| label: aws_connect
 invisible(capture.output(rportal::awsvault_profile("upro")))
+```
+
+
+```{r}
+#| label: query_workflow_table
+#| message: false
 query_wf <- glue('WHERE "start" >= date(\'{dstart}\') AND "start" <= date(\'{dend}\') ORDER BY "start" DESC;')
-pmeta_rds <- here(glue("nogit/data_portal/workflows/{as.Date(date_end)}.rds"))
-# fs::dir_create(here(glue("nogit/data_portal/workflows")))
-# pmeta_raw <- rportal::portaldb_query_workflow(query_wf)
-# saveRDS(pmeta_raw, file = pmeta_rds)
-pmeta_raw <- readr::read_rds(pmeta_rds)
+pmeta_raw <- rportal::portaldb_query_workflow(query_wf)
 # check there are no rogue unaccounted wfs run
 stopifnot(all(pmeta_raw[["type_name"]] %in% wfs[["name"]]))
 ```
@@ -120,13 +122,10 @@ sbjids <- funcs$get_ids(pmeta_tidy, "SubjectID") # not used anywhere (yet?)
 
 ```{r}
 #| label: query_limsrow_table
-# fs::dir_create(here(glue("nogit/data_portal/lims")))
-lims_rds <- here(glue("nogit/data_portal/lims/{as.Date(date_end)}.rds"))
+#| message: false
 libidsq <- paste(libids, collapse = "|")
 query_lims <- glue("WHERE REGEXP_LIKE(\"library_id\", '{libidsq}');")
-# lims_raw <- rportal::portaldb_query_limsrow(query_lims)
-# saveRDS(lims_raw, file = lims_rds)
-lims_raw <- readr::read_rds(lims_rds)
+lims_raw <- rportal::portaldb_query_limsrow(query_lims)
 lims <- lims_raw |>
   select(
     SubjectID = "subject_id", SampleID = "sample_id", LibraryID = "library_id",
