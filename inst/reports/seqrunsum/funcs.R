@@ -49,10 +49,10 @@ funcs <- list(
       ) |>
       ungroup() |>
       tidyr::unnest(clrs) |>
+      distinct(.data$clrs, .keep_all = TRUE) |>
       pull(clrs)
-    max_col <- length(clrs)
-    stopifnot(nc <= max_col, nc > 0)
-    clrs[seq_len(nc)]
+    # recycle colour vector according to nc
+    rep_len(clrs, length.out = nc)
   },
   #----#
   get_sbj_url = function(x, colour = NULL, account = "pro") {
