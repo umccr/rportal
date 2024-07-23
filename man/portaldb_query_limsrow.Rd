@@ -25,8 +25,10 @@ libids <- shQuote(paste(c("L2400340", "L2400256"), collapse = "|"))
 query1 <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
 portaldb_query_limsrow(query1)
 sbjids <- paste(c("SBJ04470", "SBJ04487", "SBJ04488"), collapse = "|")
-query2 <- glue("WHERE REGEXP_LIKE(\"subject_id\", '{sbjids}') AND \"type\" = 'WGS' ",
-               "AND \"phenotype\" = 'tumor' ORDER BY \"subject_id\" DESC;")
+query2 <- glue(
+  "WHERE REGEXP_LIKE(\"subject_id\", '{sbjids}') AND \"type\" = 'WGS' ",
+  "AND \"phenotype\" = 'tumor' ORDER BY \"subject_id\" DESC;"
+)
 d <- portaldb_query_limsrow(query2)
 # get tumor libids for each sbjid
 d |> dplyr::select(subject_id, library_id)

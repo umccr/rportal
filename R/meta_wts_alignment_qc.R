@@ -10,7 +10,7 @@
 #'   readr::read_rds()
 #' (m <- meta_wts_alignment_qc(pmeta))
 #' @testexamples
-#' expect_equal("Lane" %in% colnames(m), TRUE)
+#' expect_equal("lane" %in% colnames(m), TRUE)
 #' @export
 meta_wts_alignment_qc <- function(pmeta, status = "Succeeded") {
   # retrieve workflow runs with the given type and status

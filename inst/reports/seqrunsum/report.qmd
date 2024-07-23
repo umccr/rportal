@@ -27,8 +27,8 @@ format:
       body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
-  date_start: "XXXX-XX-XX"
-  date_end: "XXXX-XX-XX"
+  date_start: "2024-07-20"
+  date_end: "2024-07-22"
 ---
 
 ```{r}
@@ -54,6 +54,19 @@ params:
 }
 set.seed(42)
 ```
+
+```{r}
+#| label: aws_connect
+invisible(capture.output(rportal::awsvault_profile("upro")))
+```
+
+```{r}
+#| label: ica_token
+# required for directly parsing fastq_list.csv and listing FASTQs on GDS
+ica_token <- Sys.getenv("ICA_ACCESS_TOKEN")
+```
+
+
 
 ```{r funcs_source}
 source(here("inst/reports/seqrunsum/funcs.R"))
@@ -84,12 +97,6 @@ wfs <- tibble::tribble(
 ) |>
   mutate(func = glue("rportal::meta_{name}"))
 ```
-
-```{r}
-#| label: aws_connect
-invisible(capture.output(rportal::awsvault_profile("upro")))
-```
-
 
 ```{r}
 #| label: query_workflow_table
@@ -195,6 +202,59 @@ funcs$sbj_wf_count_tbl(pmeta_sumy)
 funcs$plot_vistime(pmeta_sumy)
 ```
 
+## FASTQ Summary
+
+Check FASTQs generated via the `bcl_convert` workflows.
+
+```{r}
+wf <- "bcl_convert"
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+#| label: fastq_summary
+
+# first list FASTQs in the bcl_convert output directories
+gds_outdirs_fastq <- pmeta_tidy[[wf]] |>
+  select("gds_outdirs_fastq") |>
+  tidyr::unnest("gds_outdirs_fastq") |>
+  distinct() |>
+  mutate(outdirs_reports = file.path(.data$gds_outdirs_fastq, "Reports"))
+gds_fastqs1 <- gds_outdirs_fastq |>
+  select("gds_outdirs_fastq") |>
+  rowwise() |>
+  mutate(
+    list_fqs = list(
+      dracarys::gds_files_list_fastq(
+        gdsdir = .data$gds_outdirs_fastq, token = ica_token, page_size = 200
+      )
+    )
+  ) |>
+  ungroup() |>
+  tidyr::unnest("list_fqs") |>
+  select("path", "size", "size_chr", "size_num")
+# now grab the Reports/fastq_list.csv files to check consistency
+# across listed FASTQs and found FASTQs
+gds_fastqs2 <- gds_outdirs_fastq |>
+  rowwise() |>
+  mutate(fq = list(funcs$gds_fastqlistcsv_read(.data$outdirs_reports, token = ica_token, page_size = 20))) |>
+  ungroup() |>
+  tidyr::unnest("fq") |>
+  mutate(path = file.path(dirname(.data$gds_outdirs_fastq), .data$path)) |>
+  select("LibraryID", "SampleID", "path", "topup", "read", "lane", "rgid")
+
+assertthat::assert_that(nrow(gds_fastqs1) == nrow(gds_fastqs2))
+assertthat::assert_that(all(gds_fastqs1$path %in% gds_fastqs2$path))
+# now join to get the file sizes
+fq <- gds_fastqs2 |>
+  left_join(gds_fastqs1, by = "path") |>
+  select("LibraryID", "SampleID", "path", "size_num", "size_chr", "topup", "rgid", "read", "lane")
+
+funcs$dt_view(fq, id = "FASTQs")
+```
+
 ## Workflow Metadata
 
 ```{r}
@@ -216,7 +276,6 @@ SubjectID_def <- reactable::colDef(html = TRUE, minWidth = 120)
 ::: {.panel-tabset .nav-pills}
 
 ```{r}
-#| echo: false
 wf <- "bcl_convert"
 ```
 
@@ -279,7 +338,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "wgs_alignment_qc"
 ```
 
@@ -309,7 +367,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "wts_alignment_qc"
 ```
 
@@ -339,7 +396,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "wts_tumor_only"
 ```
 
@@ -369,7 +425,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "wgs_tumor_normal"
 ```
 
@@ -404,7 +459,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "umccrise"
 ```
 
@@ -439,7 +493,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "rnasum"
 ```
 
@@ -469,7 +522,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "star_alignment"
 ```
 
@@ -499,7 +551,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "oncoanalyser_wts"
 ```
 
@@ -530,7 +581,6 @@ pmeta_tidy[[wf]] |>
 
 
 ```{r}
-#| echo: false
 wf <- "oncoanalyser_wgs"
 ```
 
@@ -565,7 +615,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "oncoanalyser_wgts_existing_both"
 ```
 
@@ -601,7 +650,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "sash"
 ```
 
