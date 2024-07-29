@@ -27,8 +27,8 @@ format:
       body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
-  date_start: "2024-07-20"
-  date_end: "2024-07-22"
+  date_start: "XXXX-XX-XX"
+  date_end: "XXXX-XX-XX"
 ---
 
 ```{r}
@@ -65,8 +65,6 @@ invisible(capture.output(rportal::awsvault_profile("upro")))
 # required for directly parsing fastq_list.csv and listing FASTQs on GDS
 ica_token <- Sys.getenv("ICA_ACCESS_TOKEN")
 ```
-
-
 
 ```{r funcs_source}
 source(here("inst/reports/seqrunsum/funcs.R"))
@@ -257,11 +255,14 @@ fq <- gds_fastqs2 |>
   select("LibraryID", "SampleID", "path", "size_num", "size_chr", "topup", "rgid", "read", "lane") |>
   left_join(
     lims |>
-      select("SubjectID", "SampleID", "LibraryID") |>
+      select("SubjectID", "SampleID", "LibraryID", "Type", "Phenotype", "Workflow", "Assay") |>
       distinct(),
     by = c("LibraryID", "SampleID")
   ) |>
-  select("SubjectID", "LibraryID", "SampleID", "size_num", "size_chr", "path", "topup", "rgid", "read", "lane", everything()) |>
+  select(
+    "SubjectID", "LibraryID", "SampleID", "size_num", "size_chr", "Type", "Phenotype",
+    "Workflow", "Assay", "path", "topup", "rgid", "read", "lane", everything()
+  ) |>
   left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
   mutate(SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url)) |>
   arrange(desc(SubjectID))
