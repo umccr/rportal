@@ -1,5 +1,5 @@
-date_start="2024-07-27"
-date_end="2024-07-29"
+date_start="2024-08-03"
+date_end="2024-08-05"
 out="seqrunsum_${date_start}_${date_end}.html"
 
 quarto render report.qmd \

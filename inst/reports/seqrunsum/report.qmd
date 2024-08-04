@@ -247,8 +247,8 @@ gds_fastqs2 <- gds_outdirs_fastq |>
   mutate(path = file.path(dirname(.data$gds_outdirs_fastq), .data$path)) |>
   select("LibraryID", "SampleID", "path", "topup", "read", "lane", "rgid")
 
-assertthat::assert_that(nrow(gds_fastqs1) == nrow(gds_fastqs2))
-assertthat::assert_that(all(gds_fastqs1$path %in% gds_fastqs2$path))
+stopifnot(nrow(gds_fastqs1) == nrow(gds_fastqs2))
+stopifnot(all(gds_fastqs1$path %in% gds_fastqs2$path))
 # now join to get the file sizes
 fq <- gds_fastqs2 |>
   left_join(gds_fastqs1, by = "path") |>
