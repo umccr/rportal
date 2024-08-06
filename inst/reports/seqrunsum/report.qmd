@@ -1,6 +1,6 @@
 ---
 title: "{{< meta params.title >}}"
-subtitle: "Period: {{< meta params.date_start >}} to {{< meta params.date_end >}}"
+subtitle: "Period: `r paste(params$date_start, ' to ', params$date_end)`"
 author: "UMCCR - Genomics Platform Group"
 date: now
 date-format: "YYYY-MM-DD HH:mm Z"
@@ -27,8 +27,8 @@ format:
       body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
-  date_start: "2024-06-15"
-  date_end: "2024-06-17"
+  date_start: "XXXX-XX-XX"
+  date_end: "XXXX-XX-XX"
 ---
 
 ```{r}
@@ -53,6 +53,17 @@ params:
   require(vistime, include.only = "vistime")
 }
 set.seed(42)
+```
+
+```{r}
+#| label: aws_connect
+invisible(capture.output(rportal::awsvault_profile("upro")))
+```
+
+```{r}
+#| label: ica_token
+# required for directly parsing fastq_list.csv and listing FASTQs on GDS
+ica_token <- Sys.getenv("ICA_ACCESS_TOKEN")
 ```
 
 ```{r funcs_source}
@@ -87,13 +98,9 @@ wfs <- tibble::tribble(
 
 ```{r}
 #| label: query_workflow_table
-invisible(capture.output(rportal::awsvault_profile("upro")))
+#| message: false
 query_wf <- glue('WHERE "start" >= date(\'{dstart}\') AND "start" <= date(\'{dend}\') ORDER BY "start" DESC;')
-pmeta_rds <- here(glue("nogit/data_portal/workflows/{as.Date(date_end)}.rds"))
-# fs::dir_create(here(glue("nogit/data_portal/workflows")))
-# pmeta_raw <- rportal::portaldb_query_workflow(query_wf)
-# saveRDS(pmeta_raw, file = pmeta_rds)
-pmeta_raw <- readr::read_rds(pmeta_rds)
+pmeta_raw <- rportal::portaldb_query_workflow(query_wf)
 # check there are no rogue unaccounted wfs run
 stopifnot(all(pmeta_raw[["type_name"]] %in% wfs[["name"]]))
 ```
@@ -120,21 +127,21 @@ sbjids <- funcs$get_ids(pmeta_tidy, "SubjectID") # not used anywhere (yet?)
 
 ```{r}
 #| label: query_limsrow_table
-# fs::dir_create(here(glue("nogit/data_portal/lims")))
-lims_rds <- here(glue("nogit/data_portal/lims/{as.Date(date_end)}.rds"))
+#| message: false
 libidsq <- paste(libids, collapse = "|")
 query_lims <- glue("WHERE REGEXP_LIKE(\"library_id\", '{libidsq}');")
-# lims_raw <- rportal::portaldb_query_limsrow(query_lims)
-# saveRDS(lims_raw, file = lims_rds)
-lims_raw <- readr::read_rds(lims_rds)
+lims_raw <- rportal::portaldb_query_limsrow(query_lims)
 lims <- lims_raw |>
   select(
     SubjectID = "subject_id", SampleID = "sample_id", LibraryID = "library_id",
     ExternalSubjectID = "external_subject_id",
     ProjectOwner = "project_owner", ProjectName = "project_name",
-    Type = "type", Assay = "assay", Phenotype = "phenotype",
-    Source = "source", Quality = "quality", Topup = "topup", Workflow = "workflow"
-  )
+    Type = "type",
+    Phenotype = "phenotype",
+    Topup = "topup", Workflow = "workflow",
+    Assay = "assay", Source = "source",
+  ) |>
+  distinct()
 ```
 
 ```{r}
@@ -196,6 +203,73 @@ funcs$sbj_wf_count_tbl(pmeta_sumy)
 funcs$plot_vistime(pmeta_sumy)
 ```
 
+## FASTQ Summary
+
+Check FASTQs generated via the `bcl_convert` workflows.
+
+```{r}
+SubjectID_def <- reactable::colDef(html = TRUE, minWidth = 120)
+wf <- "bcl_convert"
+if (!chunks1[[wf]]) {
+  funcs$kable_empty_wf(wf)
+}
+```
+
+```{r eval=chunks1[[wf]]}
+#| label: fastq_summary
+
+# first list FASTQs in the bcl_convert output directories
+gds_outdirs_fastq <- pmeta_tidy[[wf]] |>
+  select("gds_outdirs_fastq") |>
+  tidyr::unnest("gds_outdirs_fastq") |>
+  distinct() |>
+  mutate(outdirs_reports = file.path(.data$gds_outdirs_fastq, "Reports"))
+gds_fastqs1 <- gds_outdirs_fastq |>
+  select("gds_outdirs_fastq") |>
+  rowwise() |>
+  mutate(
+    list_fqs = list(
+      dracarys::gds_files_list_fastq(
+        gdsdir = .data$gds_outdirs_fastq, token = ica_token, page_size = 200
+      )
+    )
+  ) |>
+  ungroup() |>
+  tidyr::unnest("list_fqs") |>
+  select("path", "size", "size_chr", "size_num")
+# now grab the Reports/fastq_list.csv files to check consistency
+# across listed FASTQs and found FASTQs
+gds_fastqs2 <- gds_outdirs_fastq |>
+  rowwise() |>
+  mutate(fq = list(funcs$gds_fastqlistcsv_read(.data$outdirs_reports, token = ica_token, page_size = 20))) |>
+  ungroup() |>
+  tidyr::unnest("fq") |>
+  mutate(path = file.path(dirname(.data$gds_outdirs_fastq), .data$path)) |>
+  select("LibraryID", "SampleID", "path", "topup", "read", "lane", "rgid")
+
+stopifnot(nrow(gds_fastqs1) == nrow(gds_fastqs2))
+stopifnot(all(gds_fastqs1$path %in% gds_fastqs2$path))
+# now join to get the file sizes
+fq <- gds_fastqs2 |>
+  left_join(gds_fastqs1, by = "path") |>
+  select("LibraryID", "SampleID", "path", "size_num", "size_chr", "topup", "rgid", "read", "lane") |>
+  left_join(
+    lims |>
+      select("SubjectID", "SampleID", "LibraryID", "Type", "Phenotype", "Workflow", "Assay") |>
+      distinct(),
+    by = c("LibraryID", "SampleID")
+  ) |>
+  select(
+    "SubjectID", "LibraryID", "SampleID", "size_num", "size_chr", "Type", "Phenotype",
+    "Workflow", "Assay", "path", "topup", "rgid", "read", "lane", everything()
+  ) |>
+  left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
+  mutate(SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url)) |>
+  arrange(desc(SubjectID))
+
+funcs$dt_view(fq, id = "FASTQs", columns = list(SubjectID = SubjectID_def))
+```
+
 ## Workflow Metadata
 
 ```{r}
@@ -211,13 +285,11 @@ end_status_def <- reactable::colDef(
     list(color = color, fontweight = "bold")
   }
 )
-SubjectID_def <- reactable::colDef(html = TRUE, minWidth = 120)
 ```
 
 ::: {.panel-tabset .nav-pills}
 
 ```{r}
-#| echo: false
 wf <- "bcl_convert"
 ```
 
@@ -243,7 +315,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "portal_run_id", "durationMin", "runfolder_name", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "batch_name", "Type", "Assay", "Source", "Quality", "Workflow",
+    "ProjectOwner", "ProjectName", "batch_name", "Type", "Assay", "Source", "Workflow",
     "start", "end", contains("gds_outdir")
   ) |>
   arrange(portal_run_id, desc(SubjectID), start) |>
@@ -272,7 +344,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -280,7 +352,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "wgs_alignment_qc"
 ```
 
@@ -301,8 +372,8 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "Lane", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "lane", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -310,7 +381,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "wts_alignment_qc"
 ```
 
@@ -331,8 +401,8 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "Lane", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "lane", "ExternalSubjectID",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -340,7 +410,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "wts_tumor_only"
 ```
 
@@ -362,7 +431,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
-    "Type", "Assay", "Source", "Quality", "Workflow",
+    "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -370,7 +439,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "wgs_tumor_normal"
 ```
 
@@ -397,7 +465,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
-    "Type", "Assay", "Source", "Quality", "Workflow",
+    "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen_somatic", "gds_outdir_dragen_germline"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -405,7 +473,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "umccrise"
 ```
 
@@ -432,7 +499,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_umccrise"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -440,7 +507,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "rnasum"
 ```
 
@@ -462,7 +528,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "rnasum_dataset", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "gds_outdir_rnasum",
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -470,7 +536,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "star_alignment"
 ```
 
@@ -492,7 +557,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
-    "Type", "Assay", "Source", "Quality", "Workflow",
+    "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_star"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -500,7 +565,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "oncoanalyser_wts"
 ```
 
@@ -522,7 +586,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
-    "Type", "Assay", "Source", "Quality", "Workflow",
+    "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -531,7 +595,6 @@ pmeta_tidy[[wf]] |>
 
 
 ```{r}
-#| echo: false
 wf <- "oncoanalyser_wgs"
 ```
 
@@ -558,7 +621,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -566,7 +629,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "oncoanalyser_wgts_existing_both"
 ```
 
@@ -594,7 +656,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "WGTS", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
   ) |>
   arrange(desc(SubjectID), start) |>
@@ -602,7 +664,6 @@ pmeta_tidy[[wf]] |>
 ```
 
 ```{r}
-#| echo: false
 wf <- "sash"
 ```
 
@@ -629,7 +690,7 @@ pmeta_tidy[[wf]] |>
   ) |>
   select(
     "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Quality", "Workflow",
+    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
     "portal_run_id", "wfr_id", "start", "end", "s3_outdir_sash"
   ) |>
   arrange(desc(SubjectID), start) |>

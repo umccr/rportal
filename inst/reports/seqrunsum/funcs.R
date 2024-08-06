@@ -1,4 +1,42 @@
 funcs <- list(
+  gds_fastqlistcsv_read = function(gdsdir, token, page_size = 20) {
+    .read_fastqlist <- function(x) {
+      nms <- tibble::tribble(
+        ~new_nm, ~old_nm, ~class,
+        "rgid", "RGID", "c",
+        "SampleID_LibraryID", "RGSM", "c",
+        "rglb", "RGLB", "c",
+        "lane", "Lane", "c",
+        "1", "Read1File", "c",
+        "2", "Read2File", "c"
+      )
+      lookup <- tibble::deframe(nms[c("new_nm", "old_nm")])
+      d <- readr::read_csv(x, col_types = readr::cols(.default = "c"))
+      assertthat::assert_that(all(colnames(d) == nms[["old_nm"]]))
+      d |>
+        dplyr::rename(dplyr::all_of(lookup)) |>
+        dplyr::mutate(
+          SampleID = sub("(.*)_(L.*)", "\\1", .data$SampleID_LibraryID),
+          LibraryID = sub("(.*)_(L.*)", "\\2", .data$SampleID_LibraryID),
+          topup = grepl("topup", .data$LibraryID)
+        ) |>
+        dplyr::select("rgid", "SampleID", "LibraryID", "lane", "1", "2", "topup") |>
+        tidyr::pivot_longer(c("1", "2"), names_to = "read", values_to = "path")
+    }
+    regex <- tibble::tribble(
+      ~regex, ~fun,
+      "fastq_list\\.csv$", "fastq_list"
+    )
+    g <- dracarys::gds_files_list_filter_relevant(
+      gdsdir = gdsdir, token = token, pattern = NULL, include_url = TRUE,
+      page_size = page_size, regexes = regex
+    )
+    assertthat::assert_that(
+      nrow(g) == 1,
+      all(colnames(g) == c("type", "bname", "size", "file_id", "path", "presigned_url"))
+    )
+    .read_fastqlist(g$presigned_url)
+  },
   #----#
   kable_empty_wf = function(wf) {
     kableExtra::kbl(NULL, caption = glue("<strong>NO {wf} WORKFLOWS WERE RUN</strong>"), escape = FALSE) |>
@@ -49,10 +87,10 @@ funcs <- list(
       ) |>
       ungroup() |>
       tidyr::unnest(clrs) |>
+      distinct(.data$clrs, .keep_all = TRUE) |>
       pull(clrs)
-    max_col <- length(clrs)
-    stopifnot(nc <= max_col, nc > 0)
-    clrs[seq_len(nc)]
+    # recycle colour vector according to nc
+    rep_len(clrs, length.out = nc)
   },
   #----#
   get_sbj_url = function(x, colour = NULL, account = "pro") {

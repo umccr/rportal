@@ -8,6 +8,6 @@ test_that("Function meta_wgs_alignment_qc() @ L15", {
     system.file(package = "rportal") |>
     readr::read_rds()
   (m <- meta_wgs_alignment_qc(pmeta))
-  expect_equal("Lane" %in% colnames(m), TRUE)
+  expect_equal("lane" %in% colnames(m), TRUE)
 })
 
