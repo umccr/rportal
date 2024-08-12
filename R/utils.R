@@ -22,3 +22,22 @@ dummy1 <- function() {
   optparse::make_option
   fs::dir_create
 }
+
+#' Are AWS/ICA EnvVars Undefined?
+#'
+#' @return Tibble with undefined env vars.
+#' @export
+envvar_undefined <- function() {
+  env <- dplyr::tibble(
+    var = c(
+      "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "ICA_ACCESS_TOKEN"
+    )
+  ) |>
+    dplyr::mutate(
+      value = Sys.getenv(.data$var),
+      defined = nchar(.data$value) > 0,
+    ) |>
+    dplyr::filter(!.data$defined) |>
+    dplyr::pull("var")
+  env
+}
