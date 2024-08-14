@@ -30,7 +30,7 @@ jobs:
           environment-file: ${{ env.env_yaml_path }}/condabuild.yaml
       - name: 🐍 Conda pkg build and upload
         run: |
-          conda mambabuild --R 4.3.3 ${recipe_path} -c conda-forge --token ${atoken}
+          conda mambabuild --R 4.3.3 ${recipe_path} -c conda-forge -c bioconda -c umccr --token ${atoken}
       - name: 🔒 Conda lock
         run: |
           conda-lock lock --file ${env_yaml_path}/rportal.yaml -p linux-64
