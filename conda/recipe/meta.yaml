@@ -1,0 +1,67 @@
+package:
+  name: r-rportal
+  version: 0.1.1 # bump2version
+
+source:
+  path: ../..
+
+build:
+  number: 0
+  noarch: generic
+  rpaths:
+    - lib/R/lib/
+    - lib/
+
+requirements:
+  build:
+    - git
+  host:
+    - python
+    - boto3
+    - r-base
+    - r-assertthat
+    - r-cli
+    - r-dbi
+    - r-dplyr
+    - umccr::r-dracarys
+    - r-fs
+    - r-glue
+    - r-jsonlite
+    - r-optparse
+    - r-purrr
+    - r-rathena
+    - r-readr
+    - r-rlang
+    - r-tibble
+    - r-tidyr
+
+  run:
+    - python
+    - boto3
+    - r-base
+    - r-assertthat
+    - r-cli
+    - r-dbi
+    - r-dplyr
+    - umccr::r-dracarys
+    - r-fs
+    - r-glue
+    - r-jsonlite
+    - r-optparse
+    - r-purrr
+    - r-rathena
+    - r-readr
+    - r-rlang
+    - r-tibble
+    - r-tidyr
+
+test:
+  commands:
+    - $R -e "library('rportal')"
+    - datashare.R --version
+    - python -c "import boto3"
+
+about:
+  home: https://github.com/umccr/rportal
+  license: MIT
+  summary: UMCCR data portal R functionality
