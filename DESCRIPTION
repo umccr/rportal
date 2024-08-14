@@ -1,7 +1,7 @@
 Package: rportal
 Title: UMCCR Portal R Functions
 Description: Contains R functionality for interacting with the UMCCR Data Portal.
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
     person("Peter", "Diakumis", , "peterdiakumis@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-7502-7545"))
