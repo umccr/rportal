@@ -1,0 +1,9 @@
+name: rportal
+
+channels:
+  - umccr
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - r-rportal ==0.1.1 # versioned by bump2version
