@@ -265,6 +265,7 @@ fq <- gds_fastqs2 |>
   ) |>
   left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
   mutate(SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url)) |>
+  select(-"sbj_url") |>
   arrange(desc(SubjectID))
 
 funcs$dt_view(fq, id = "FASTQs", columns = list(SubjectID = SubjectID_def))
