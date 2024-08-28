@@ -45,7 +45,7 @@ params:
   require(kableExtra, include.only = "kbl")
   require(purrr, include.only = "map")
   require(RColorBrewer, include.only = "brewer.pal")
-  require(rportal, include.only = "awsvault_profile")
+  require(rportal, include.only = "portaldb_query_workflow")
   require(readr, include.only = "cols")
   require(tibble, include.only = "as_tibble")
   require(tidyr, include.only = "unnest")
@@ -53,11 +53,6 @@ params:
   require(vistime, include.only = "vistime")
 }
 set.seed(42)
-```
-
-```{r}
-#| label: aws_connect
-invisible(capture.output(rportal::awsvault_profile("upro")))
 ```
 
 ```{r}
@@ -220,6 +215,7 @@ if (!chunks1[[wf]]) {
 
 # first list FASTQs in the bcl_convert output directories
 gds_outdirs_fastq <- pmeta_tidy[[wf]] |>
+  filter(end_status == "Succeeded") |>
   select("gds_outdirs_fastq") |>
   tidyr::unnest("gds_outdirs_fastq") |>
   distinct() |>
