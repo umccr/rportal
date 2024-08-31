@@ -56,9 +56,16 @@ set.seed(42)
 ```
 
 ```{r}
-#| label: ica_token
+#| label: envvars
+env_und <- rportal::envvar_undefined()
+if (length(env_und) > 0) {
+  e <- paste(env_und, collapse = ", ")
+  cli::cli_abort("Following environment variables not defined: {e}")
+}
+
 # required for directly parsing fastq_list.csv and listing FASTQs on GDS
-ica_token <- Sys.getenv("ICA_ACCESS_TOKEN")
+ica_token <- Sys.getenv("ICA_ACCESS_TOKEN") |>
+  dracarys::ica_token_validate()
 ```
 
 ```{r funcs_source}
