@@ -27,13 +27,13 @@ funcs <- list(
       ~regex, ~fun,
       "fastq_list\\.csv$", "fastq_list"
     )
-    g <- dracarys::gds_files_list_filter_relevant(
+    g <- dracarys::gds_list_files_filter_relevant(
       gdsdir = gdsdir, token = token, pattern = NULL, include_url = TRUE,
       page_size = page_size, regexes = regex
     )
     assertthat::assert_that(
       nrow(g) == 1,
-      all(colnames(g) == c("type", "bname", "size", "file_id", "path", "presigned_url"))
+      all(colnames(g) == c("type", "bname", "size", "lastmodified", "file_id", "path", "presigned_url"))
     )
     .read_fastqlist(g$presigned_url)
   },
