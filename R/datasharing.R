@@ -94,23 +94,23 @@ datashare_um <- function(sid, lid, token_ica) {
   cobalt_dir <- file.path(umccrise_work_dir, "purple/cobalt")
   sigs_dir <- file.path(umccrise_dir, "cancer_report_tables/sigs")
   d_um_urls1 <- umccrise_dir |>
-    dracarys::gds_files_list_filter_relevant(
+    dracarys::gds_list_files_filter_relevant(
       token = token_ica, include_url = TRUE, page_size = 500, regexes = umccrise_files
     )
   d_um_urls_sigs <- sigs_dir |>
-    dracarys::gds_files_list(token = token_ica, include_url = TRUE, page_size = 100) |>
+    dracarys::gds_list_files_dir(token = token_ica, include_url = TRUE, page_size = 100) |>
     dplyr::mutate(type = "Signatures") |>
     dplyr::select("type", "bname", "size", "file_id", "path", "presigned_url")
   d_um_urls_amber <- amber_dir |>
-    dracarys::gds_files_list(token = token_ica, include_url = TRUE, page_size = 100) |>
+    dracarys::gds_list_files_dir(token = token_ica, include_url = TRUE, page_size = 100) |>
     dplyr::mutate(type = "AMBER") |>
     dplyr::select("type", "bname", "size", "file_id", "path", "presigned_url")
   d_um_urls_cobalt <- cobalt_dir |>
-    dracarys::gds_files_list(token = token_ica, include_url = TRUE, page_size = 100) |>
+    dracarys::gds_list_files_dir(token = token_ica, include_url = TRUE, page_size = 100) |>
     dplyr::mutate(type = "COBALT") |>
     dplyr::select("type", "bname", "size", "file_id", "path", "presigned_url")
   d_um_urls2 <- d_um_tidy[["gds_indir_dragen_somatic"]] |>
-    dracarys::gds_files_list_filter_relevant(
+    dracarys::gds_list_files_filter_relevant(
       token = token_ica, include_url = TRUE, page_size = 500, regexes = tn_files
     )
   fq_list <- d_tn_tidy |>
@@ -128,7 +128,7 @@ datashare_um <- function(sid, lid, token_ica) {
     base::split(~fastq_dir)
   fq_urls <- NULL
   for (outdir in names(fq_list)) {
-    fq_urls_tmp <- dracarys::gds_files_list_filter_relevant(
+    fq_urls_tmp <- dracarys::gds_list_files_filter_relevant(
       gdsdir = outdir, token = token_ica,
       include_url = TRUE, page_size = 500, regexes = fq_list[[outdir]]
     )
@@ -204,11 +204,11 @@ datashare_wts <- function(sid, lid, token_ica) {
   }
   d_wts_tidy <- rportal::meta_wts_tumor_only(d_wts_raw)
   d_wts_urls1 <- d_wts_tidy[["gds_outdir_dragen"]] |>
-    dracarys::gds_files_list_filter_relevant(
+    dracarys::gds_list_files_filter_relevant(
       token = token_ica, include_url = TRUE, page_size = 100, regexes = wts_files
     )
   d_wts_urls2 <- d_wts_tidy[["gds_outdir_arriba"]] |>
-    dracarys::gds_files_list_filter_relevant(
+    dracarys::gds_list_files_filter_relevant(
       token = token_ica, include_url = TRUE, page_size = 10, regexes = wts_arriba_files
     )
   d_wts_urls <- dplyr::bind_rows(d_wts_urls1, d_wts_urls2) |>

@@ -18,7 +18,7 @@ meta_main_cols <- function() {
 #' @noRd
 dummy1 <- function() {
   # Solves R CMD check: Namespaces in Imports field not imported from
-  dracarys::gds_files_list_filter_relevant
+  dracarys::gds_list_files_filter_relevant
   optparse::make_option
   fs::dir_create
 }
