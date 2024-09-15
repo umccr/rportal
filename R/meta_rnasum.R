@@ -35,7 +35,13 @@ meta_rnasum <- function(pmeta, status = "Succeeded") {
         purrr::map_chr(.data$input, list("dragen_wts_dir", "location"), .default = NA),
         .data$gds_indir_dragen
       ),
+      # renamed in v1.1.0
       gds_indir_umccrise = purrr::map_chr(.data$input, list("umccrise_directory", "location"), .default = NA),
+      gds_indir_umccrise = ifelse(
+        is.na(.data$gds_indir_umccrise),
+        purrr::map_chr(.data$input, list("umccrise", "location"), .default = NA),
+        .data$gds_indir_umccrise
+      ),
       # renamed in v1.1.0
       gds_indir_arriba = purrr::map_chr(.data$input, list("arriba_directory", "location"), .default = NA),
       gds_indir_arriba = ifelse(
