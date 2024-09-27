@@ -33,11 +33,11 @@ Imports:
     optparse,
     purrr,
     RAthena,
-    readr,
     rlang,
     tibble,
     tidyr,
 Suggests:
     knitr,
+    readr,
     rmarkdown,
     testthat (>= 3.0.0)

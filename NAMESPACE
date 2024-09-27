@@ -2,7 +2,7 @@
 
 export(datashare_um)
 export(datashare_wts)
-export(envvar_undefined)
+export(envvar_defined)
 export(meta_bcl_convert)
 export(meta_oncoanalyser_wgs)
 export(meta_oncoanalyser_wgts_existing_both)
