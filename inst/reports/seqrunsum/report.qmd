@@ -57,15 +57,14 @@ set.seed(42)
 
 ```{r}
 #| label: envvars
-env_und <- rportal::envvar_undefined()
-if (length(env_und) > 0) {
-  e <- paste(env_und, collapse = ", ")
-  cli::cli_abort("Following environment variables not defined: {e}")
-}
-
-# required for directly parsing fastq_list.csv and listing FASTQs on GDS
-ica_token <- Sys.getenv("ICA_ACCESS_TOKEN") |>
+# make sure you have logged into AWS and ICA
+c("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION") |>
+  rportal::envvar_defined() |>
+  stopifnot()
+icav1_token <- Sys.getenv("ICA_ACCESS_TOKEN") |>
   dracarys::ica_token_validate()
+# this helps keep annoying reticulate prompt away
+Sys.setenv(RETICULATE_PYTHON = Sys.getenv("CONDA_PYTHON_EXE"))
 ```
 
 ```{r funcs_source}
@@ -187,7 +186,7 @@ runtime_vis_height <- 5 + (nrow(pmeta_sumy) * 0.35)
 
 ```{r}
 #| label: status_count_tbl
-funcs$status_count_tbl(pmeta_status_count, height = 1000, width = 500)
+funcs$status_count_tbl(pmeta_status_count, height = 1000, width = 700)
 ```
 
 ### Workflow Counts Per Subject
@@ -233,7 +232,7 @@ gds_fastqs1 <- gds_outdirs_fastq |>
   mutate(
     list_fqs = list(
       dracarys::gds_files_list_fastq(
-        gdsdir = .data$gds_outdirs_fastq, token = ica_token, page_size = 200
+        gdsdir = .data$gds_outdirs_fastq, token = icav1_token, page_size = 200
       )
     )
   ) |>
@@ -244,7 +243,7 @@ gds_fastqs1 <- gds_outdirs_fastq |>
 # across listed FASTQs and found FASTQs
 gds_fastqs2 <- gds_outdirs_fastq |>
   rowwise() |>
-  mutate(fq = list(funcs$gds_fastqlistcsv_read(.data$outdirs_reports, token = ica_token, page_size = 20))) |>
+  mutate(fq = list(funcs$gds_fastqlistcsv_read(.data$outdirs_reports, token = icav1_token, page_size = 20))) |>
   ungroup() |>
   tidyr::unnest("fq") |>
   mutate(path = file.path(dirname(.data$gds_outdirs_fastq), .data$path)) |>
@@ -258,7 +257,7 @@ fq <- gds_fastqs2 |>
   select("LibraryID", "SampleID", "path", "size_num", "size_chr", "topup", "rgid", "read", "lane") |>
   left_join(
     lims |>
-      select("SubjectID", "SampleID", "LibraryID", "Type", "Phenotype", "Workflow", "Assay") |>
+      select("SubjectID", "SampleID", "LibraryID", "ProjectOwner", "ProjectName", "Type", "Phenotype", "Workflow", "Assay") |>
       distinct(),
     by = c("LibraryID", "SampleID")
   ) |>

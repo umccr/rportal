@@ -43,7 +43,7 @@ funcs <- list(
       kableExtra::kable_minimal(full_width = TRUE, position = "left")
   },
   #----#
-  dt_view = function(x, id, ...) {
+  dt_view = function(x, id, height = 500, ...) {
     htmltools::browsable(
       htmltools::tagList(
         htmltools::tags$button(
@@ -55,7 +55,7 @@ funcs <- list(
             bordered = TRUE,
             filterable = TRUE,
             fullWidth = TRUE,
-            height = 500,
+            height = height,
             highlight = TRUE,
             pagination = FALSE,
             resizable = TRUE,
@@ -184,10 +184,10 @@ funcs <- list(
         wrap = FALSE,
         resizable = TRUE,
         width = width,
-        fullWidth = TRUE,
         bordered = TRUE,
         columns = list(
           end_status = reactable::colDef(
+            minWidth = 170,
             style = function(val) {
               color <- case_when(
                 val == "Succeeded" ~ "green",
@@ -197,6 +197,9 @@ funcs <- list(
               )
               list(color = color, fontweight = "bold")
             }
+          ),
+          type_name = reactable::colDef(
+            minWidth = 220
           )
         )
       )
