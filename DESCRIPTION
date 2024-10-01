@@ -29,6 +29,7 @@ Imports:
     dracarys,
     fs,
     glue,
+    jose,
     jsonlite,
     optparse,
     paws,
