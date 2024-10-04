@@ -19,21 +19,21 @@ orca_query_url <- function(url, token = NULL) {
     httr2::resp_body_json()
 }
 
-#' OrcaBus cttsov2 PortalRunId To Output Directory
+#' OrcaBus PortalRunId To Workflow Payload
 #'
-#' Given a portalRunId from an OrcaBus cttso run, generate the sampleId and
-#' root path to the output directory with the results.
+#' Given an OrcaBus portalRunId, provides the workflow payload.
 #'
-#' @param prid PortalRunId.
+#' @param prid portalRunId.
 #' @param token JWT.
+#' @param stage Environment where API is deployed (prod, stg or dev).
 #'
-#' @return List with the sampleId `prefix` and the `path` containing the Results
-#' and Logs_Intermediates folders.
+#' @return List of workflow payload.
 #' @examples
 #' \dontrun{
 #' token <- orca_jwt() |> jwt_validate()
 #' # e.g. for a cttsov2 workflow
-#' orca_workflow_payload("20240930fc23056d", token = token)
+#' prid <- "20240930a40b3974"
+#' p <- orca_prid2wfpayload(prid = prid, token = token)
 #'
 #' sampleid <- resp[["data"]][["inputs"]][["sampleId"]]
 #' path <- resp[["data"]][["outputs"]][["resultsDir"]] |> dirname()
@@ -44,19 +44,109 @@ orca_query_url <- function(url, token = NULL) {
 #' }
 #'
 #' @export
-orca_workflow_payload <- function(prid, token) {
+orca_prid2wfpayload <- function(prid, token, stage = "prod") {
+  assertthat::assert_that(stage %in% orca_stages())
   prid2payload <- function(prid, token) {
-    endpoint <- "https://workflow.prod.umccr.org/api/v1/workflowrun"
-    url <- glue::glue("{endpoint}?portalRunId={prid}")
+    ep <- glue::glue("https://workflow.{stage}.umccr.org/api/v1/workflowrun")
+    url <- glue::glue("{ep}?portalRunId={prid}")
     resp <- orca_query_url(url, token)
     resp[["results"]][[1]][["currentState"]][["payload"]]
   }
   payload <- prid2payload(prid, token)
-  endpoint <- "https://workflow.prod.umccr.org/api/v1/payload"
-  url <- glue::glue("{endpoint}/{payload}")
+  ep <- glue::glue("https://workflow.{stage}.umccr.org/api/v1/payload")
+  url <- glue::glue("{ep}/{payload}")
   orca_query_url(url, token)
 }
 
+#' OrcaBus Get Workflows From LibraryId
+#'
+#' Given a libraryId gets workflow details.
+#'
+#' @param libid libraryId.
+#' @param token JWT.
+#' @param stage Environment where API is deployed (prod, stg or dev).
+#' @param wf_name Name of workflow to query.
+#' @param page_size Maximum number of rows to return.
+#'
+#' @return Tibble with results.
+#' @examples
+#' \dontrun{
+#' token <- orca_jwt() |> jwt_validate()
+#' libid <- "L2401414"
+#' wf_name <- "cttsov2"
+#' d <- orca_libid2workflows(libid = libid, token = token, wf_name = wf_name)
+#' }
+#' @export
+orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, stage = "prod") {
+  assertthat::assert_that(stage %in% orca_stages())
+  wf_name_qstring <- ""
+  if (!is.null(wf_name)) {
+    wf_name_qstring <- glue::glue("&workflow__workflowName={wf_name}")
+  }
+  ep <- glue::glue("https://workflow.{stage}.umccr.org/api/v1/workflowrun/")
+  url <- glue::glue("{ep}?libraries__libraryId={libid}&rowsPerPage={page_size}{wf_name_qstring}")
+  x <- orca_query_url(url, token)
+  res <- x[["results"]]
+  d <- tibble::tibble(
+    prid = res |> purrr::map_chr("portalRunId", .default = NA),
+    wfr_name = res |> purrr::map_chr("workflowRunName", .default = NA),
+    wf_id = res |> purrr::map_int(list("workflow", "id"), .default = NA),
+    wf_name = res |> purrr::map_chr(list("workflow", "workflowName"), .default = NA),
+    wf_version = res |> purrr::map_chr(list("workflow", "workflowVersion"), .default = NA),
+    libraries = res |> purrr::map(\(y) y |>
+      purrr::pluck("libraries") |>
+      purrr::map_chr("libraryId")),
+    currentStateStatus = res |> purrr::map_chr(list("currentState", "status"), .default = NA),
+    currentStateTimestamp = res |> purrr::map_chr(list("currentState", "timestamp"), .default = NA)
+  )
+  d
+}
+
+#' OrcaBus List Workflow Runs
+#'
+#' @param wf_name Name of workflow. If NULL, returns all.
+#' @param token JWT.
+#' @param page_size Maximum number of rows to return.
+#' @param stage Environment where API is deployed (prod, stg or dev).
+#'
+#' @examples
+#' \dontrun{
+#' token <- orca_jwt() |> jwt_validate()
+#' wf_name <- NULL
+#' wf_name <- "cttsov2"
+#' orca_workflow_list(wf_name = wf_name, token = token)
+#' }
+#' @return Tibble with results.
+#'
+#' @export
+orca_workflow_list <- function(wf_name = NULL, token, page_size = 10, stage = "prod") {
+  assertthat::assert_that(stage %in% orca_stages())
+  wf_name_qstring <- ""
+  if (!is.null(wf_name)) {
+    wf_name_qstring <- glue::glue("&workflow__workflowName={wf_name}")
+  }
+  ep <- glue::glue("https://workflow.{stage}.umccr.org/api/v1/workflowrun/")
+  url <- glue::glue("{ep}?rowsPerPage={page_size}{wf_name_qstring}")
+  x <- orca_query_url(url, token)
+  res <- x[["results"]]
+  d <- tibble::tibble(
+    prid = res |> purrr::map_chr("portalRunId", .default = NA),
+    wfr_name = res |> purrr::map_chr("workflowRunName", .default = NA),
+    wf_id = res |> purrr::map_int(list("workflow", "id"), .default = NA),
+    wf_name = res |> purrr::map_chr(list("workflow", "workflowName"), .default = NA),
+    wf_version = res |> purrr::map_chr(list("workflow", "workflowVersion"), .default = NA),
+    libraries = res |> purrr::map(\(y) y |>
+      purrr::pluck("libraries") |>
+      purrr::map_chr("libraryId")),
+    currentStateStatus = res |> purrr::map_chr(list("currentState", "status"), .default = NA),
+    currentStateTimestamp = res |> purrr::map_chr(list("currentState", "timestamp"), .default = NA)
+  )
+  return(d)
+}
+
+orca_stages <- function() {
+  c("prod", "stg", "dev")
+}
 
 # urls <- list(
 #   file = list(
