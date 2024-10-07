@@ -1,4 +1,10 @@
 portaldb_connect <- function() {
+  # make sure you have logged into AWS
+  c("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION") |>
+    rportal::envvar_defined() |>
+    stopifnot()
+  # keep annoying reticulate prompt away
+  Sys.setenv(RETICULATE_PYTHON = Sys.getenv("CONDA_PYTHON_EXE"))
   RAthena::RAthena_options(clear_s3_resource = FALSE)
   con <- DBI::dbConnect(
     RAthena::athena(),

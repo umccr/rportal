@@ -5,8 +5,13 @@
 #' @param token_ica ICA_ACCESS_TOKEN.
 #'
 #' @return Tibble with presigned URLs.
+#' @examples
+#' sid <- "SBJ03144"
+#' lid <- "L2301290"
+#' datashare_um(sid, lid)
 #' @export
-datashare_um <- function(sid, lid, token_ica) {
+datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
+  sid_lid <- glue("{sid}__{lid}")
   umccrise_files <- dplyr::tribble(
     ~regex, ~fun,
     "multiqc_report\\.html$", "HTML_MultiQC",
@@ -34,18 +39,18 @@ datashare_um <- function(sid, lid, token_ica) {
   )
   query_um <- glue(
     "WHERE \"type_name\" = 'umccrise' AND  \"end_status\" = 'Succeeded' AND ",
-    "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__umccrise__{SubjectID}__{LibraryID_tumor}') ",
+    "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__umccrise__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
   d_um_raw <- rportal::portaldb_query_workflow(query_um)
   n_um_runs <- nrow(d_um_raw)
   if (n_um_runs == 0) {
-    cli::cli_abort("ERROR: No umccrise results found for {SubjectID}__{LibraryID_tumor}")
+    cli::cli_abort("No umccrise results found for {sid_lid}")
   } else if (n_um_runs > 1) {
     d_um_raw <- d_um_raw |> dplyr::slice_head(n = 1)
     msg <- glue(
       "There are {n_um_runs} > 1 umccrise workflows run for ",
-      "{SubjectID}__{LibraryID_tumor};\n",
+      "{sid_lid};\n",
       "We use the latest run with portal_run_id=\"{d_um_raw$portal_run_id}\" ",
       "which ended at {d_um_raw$end}."
     )
@@ -57,12 +62,12 @@ datashare_um <- function(sid, lid, token_ica) {
 
   query_tn <- glue(
     "WHERE \"type_name\" = 'wgs_tumor_normal' AND  \"end_status\" = 'Succeeded' AND ",
-    "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__wgs_tumor_normal__{SubjectID}__{LibraryID_tumor}') ",
+    "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__wgs_tumor_normal__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
   d_tn_raw <- rportal::portaldb_query_workflow(query_tn)
   if (nrow(d_tn_raw) == 0) {
-    cli::cli_abort("ERROR: No wgs_tumor_normal results found for {SubjectID}__{LibraryID_tumor}")
+    cli::cli_abort("No wgs_tumor_normal results found for {sid_lid}")
   }
   d_tn_tidy <- rportal::meta_wgs_tumor_normal(d_tn_raw)
   n_tn_runs <- nrow(d_tn_tidy)
@@ -70,13 +75,13 @@ datashare_um <- function(sid, lid, token_ica) {
     if (um_dragen_input %in% d_tn_tidy[["gds_outdir_dragen_somatic"]]) {
       msg <- glue(
         "There are {n_tn_runs} > 1 wgs_tumor_normal workflows run for ",
-        "{SubjectID}__{LibraryID_tumor}\n",
+        "{sid_lid}\n",
         "We use the run which output somatic results into the following location:\n{um_dragen_input}"
       )
       cli::cli_alert_info(msg)
     } else {
       msg <- glue(
-        "ERROR: No wgs_tumor_normal results found for {SubjectID}__{LibraryID_tumor} ",
+        "No wgs_tumor_normal results found for {sid_lid} ",
         "with a gds_outdir_dragen_somatic of {um_dragen_input}"
       )
       cli::cli_abort(msg)
@@ -87,7 +92,7 @@ datashare_um <- function(sid, lid, token_ica) {
   stopifnot(nrow(d_tn_tidy) == 1)
   SampleID_tumor <- d_um_tidy[["SampleID_tumor"]]
   LibraryID_normal <- d_um_tidy[["LibraryID_normal"]]
-  sbjid_sampid_dir <- glue("{SubjectID}__{SampleID_tumor}")
+  sbjid_sampid_dir <- glue("{sid}__{SampleID_tumor}")
   umccrise_dir <- file.path(d_um_tidy[["gds_outdir_umccrise"]], sbjid_sampid_dir)
   umccrise_work_dir <- file.path(d_um_tidy[["gds_outdir_umccrise"]], "work", sbjid_sampid_dir)
   amber_dir <- file.path(umccrise_work_dir, "purple/amber")
@@ -136,24 +141,27 @@ datashare_um <- function(sid, lid, token_ica) {
   }
   if (nrow(fq_urls) == 0) {
     cli::cli_alert_danger(
-      "No FASTQs were found for {SubjectID}__{LibraryID_tumor}"
+      "No FASTQs were found for {sid_lid}"
     )
   }
   fq_urls <- fq_urls |>
     dplyr::mutate(type = sub("fastq", "FASTQ", .data$type))
   if ((nrow(d_um_urls2) != nrow(tn_files)) | ((nrow(d_um_urls1) != nrow(umccrise_files)))) {
     # files were not found? might also have files with the same pattern matching,
-    # though I have not encountered any such cases.
+    # though I have not encountered any such cases. Also: BAMs get deleted.
     cli::cli_alert_danger(
-      "There was not a 1-1 match between files requested and files found. ",
-      "Contact the UMCCR bioinformatics team."
+      text = c(
+        "There was not a 1-1 match between files requested and files found. ",
+        "Maybe BAMs have been deleted? ",
+        "Contact the UMCCR bioinformatics team."
+      )
     )
   }
   urls_all <- dplyr::bind_rows(d_um_urls1, d_um_urls2, fq_urls) |>
     dplyr::arrange(.data$type) |>
     dplyr::bind_rows(d_um_urls_amber, d_um_urls_cobalt, d_um_urls_sigs) |>
     dplyr::mutate(
-      sbjid_libid = glue("{SubjectID}__{LibraryID_tumor}"),
+      sbjid_libid = glue("{sid_lid}"),
       path = sub("gds://", "", .data$path),
       size = trimws(as.character(.data$size))
     ) |>
@@ -169,7 +177,8 @@ datashare_um <- function(sid, lid, token_ica) {
 #'
 #' @return Tibble with presigned URLs.
 #' @export
-datashare_wts <- function(sid, lid, token_ica) {
+datashare_wts <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
+  sid_lid <- glue("{sid}__{lid}")
   wts_files <- dplyr::tribble(
     ~regex, ~fun,
     "\\.bam$", "BAM_WTS_tumor",
@@ -185,18 +194,18 @@ datashare_wts <- function(sid, lid, token_ica) {
   )
   query_wts <- glue(
     "WHERE \"type_name\" = 'wts_tumor_only' AND  \"end_status\" = 'Succeeded' AND ",
-    "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__wts_tumor_only__{sid}__{lid}') ",
+    "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__wts_tumor_only__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
   d_wts_raw <- rportal::portaldb_query_workflow(query_wts)
   n_wts_runs <- nrow(d_wts_raw)
   if (n_wts_runs == 0) {
-    cli::cli_abort("ERROR: No WTS results found for {sid}__{lid}")
+    cli::cli_abort("No WTS results found for {sid_lid}")
   } else if (n_wts_runs > 1) {
     d_wts_raw <- d_wts_raw |> dplyr::slice_head(n = 1)
     msg <- glue(
       "There are {n_wts_runs} > 1 WTS workflows run for ",
-      "{sid}__{lid};\n",
+      "{sid_lid};\n",
       "We use the latest run with portal_run_id=\"{d_wts_raw$portal_run_id}\" ",
       "which ended at {d_wts_raw$end}."
     )
@@ -214,7 +223,7 @@ datashare_wts <- function(sid, lid, token_ica) {
   d_wts_urls <- dplyr::bind_rows(d_wts_urls1, d_wts_urls2) |>
     dplyr::arrange(.data$type) |>
     dplyr::mutate(
-      sbjid_libid = glue("{SubjectID}__{LibraryID_tumor}"),
+      sbjid_libid = sid_lid,
       path = sub("gds://", "", .data$path),
       size = trimws(as.character(.data$size))
     ) |>
