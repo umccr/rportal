@@ -27,13 +27,13 @@ funcs <- list(
       ~regex, ~fun,
       "fastq_list\\.csv$", "fastq_list"
     )
-    g <- dracarys::gds_files_list_filter_relevant(
+    g <- dracarys::gds_list_files_filter_relevant(
       gdsdir = gdsdir, token = token, pattern = NULL, include_url = TRUE,
       page_size = page_size, regexes = regex
     )
     assertthat::assert_that(
       nrow(g) == 1,
-      all(colnames(g) == c("type", "bname", "size", "file_id", "path", "presigned_url"))
+      all(colnames(g) == c("type", "bname", "size", "lastmodified", "file_id", "path", "presigned_url"))
     )
     .read_fastqlist(g$presigned_url)
   },
@@ -43,7 +43,7 @@ funcs <- list(
       kableExtra::kable_minimal(full_width = TRUE, position = "left")
   },
   #----#
-  dt_view = function(x, id, ...) {
+  dt_view = function(x, id, height = 500, ...) {
     htmltools::browsable(
       htmltools::tagList(
         htmltools::tags$button(
@@ -55,7 +55,7 @@ funcs <- list(
             bordered = TRUE,
             filterable = TRUE,
             fullWidth = TRUE,
-            height = 500,
+            height = height,
             highlight = TRUE,
             pagination = FALSE,
             resizable = TRUE,
@@ -184,10 +184,10 @@ funcs <- list(
         wrap = FALSE,
         resizable = TRUE,
         width = width,
-        fullWidth = TRUE,
         bordered = TRUE,
         columns = list(
           end_status = reactable::colDef(
+            minWidth = 170,
             style = function(val) {
               color <- case_when(
                 val == "Succeeded" ~ "green",
@@ -197,6 +197,9 @@ funcs <- list(
               )
               list(color = color, fontweight = "bold")
             }
+          ),
+          type_name = reactable::colDef(
+            minWidth = 220
           )
         )
       )

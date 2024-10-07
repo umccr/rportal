@@ -18,26 +18,33 @@ meta_main_cols <- function() {
 #' @noRd
 dummy1 <- function() {
   # Solves R CMD check: Namespaces in Imports field not imported from
-  dracarys::gds_files_list_filter_relevant
+  dracarys::gds_list_files_filter_relevant
   optparse::make_option
   fs::dir_create
 }
 
-#' Are AWS/ICA EnvVars Undefined?
+#' Are EnvVars Defined?
+#'
+#' @param vars Vector of env vars to check.
 #'
 #' @return Tibble with undefined env vars.
+#'
+#' @examples
+#' envvar_defined("HOME")
+#' @testexamples
+#' expect_error(envvar_defined("FOOBAR"))
+#' expect_true(envvar_defined("HOME"))
 #' @export
-envvar_undefined <- function() {
+envvar_defined <- function(vars) {
   env <- dplyr::tibble(
-    var = c(
-      "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "ICA_ACCESS_TOKEN"
-    )
+    var = vars
   ) |>
     dplyr::mutate(
       value = Sys.getenv(.data$var),
       defined = nchar(.data$value) > 0,
     ) |>
-    dplyr::filter(!.data$defined) |>
-    dplyr::pull("var")
-  env
+    dplyr::filter(!.data$defined)
+  x <- paste(env[["var"]], collapse = ", ")
+  msg <- glue::glue("Following required env variables not defined: {x}")
+  assertthat::assert_that(nrow(env) == 0, msg = msg)
 }

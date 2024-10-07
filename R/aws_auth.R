@@ -1,28 +1,59 @@
-#' AWS Vault Profile Switch
+#' OrcaBus JWT Retrieve
 #'
-#' @param p Name of profile from `~/.aws/config` to switch to.
-#' @examples
-#' \dontrun{
-#' awsvault_profile("upro")
-#' }
+#' Retrieve OrcaBus JWT from Secrets Manager.
+#'
+#' @return JWT string.
 #' @export
-awsvault_profile <- function(p) {
-  assertthat::assert_that(
-    system("command -v aws-vault") == 0,
-    msg = "aws-vault needs to be installed - see https://github.com/99designs/aws-vault"
-  )
-  creds <- file.path(tempdir(), "creds.tsv")
-  system(glue("unset AWS_VAULT && aws-vault exec {p} -- env | grep AWS > {creds}"))
-  x <- readr::read_tsv(creds, col_names = "var_eq_value", col_types = "c") |>
-    tidyr::separate_wider_delim("var_eq_value", delim = "=", names = c("var", "value"), too_many = "merge") |>
-    tidyr::pivot_wider(names_from = "var", values_from = "value") |>
-    as.list()
+orca_jwt <- function() {
+  sm_client <- paws::secretsmanager()
+  resp <- sm_client$get_secret_value(SecretId = "orcabus/token-service-jwt")
+  resp[["SecretString"]] |>
+    jsonlite::fromJSON() |>
+    purrr::pluck("id_token")
+}
 
-  Sys.setenv(AWS_VAULT = p)
-  Sys.setenv(AWS_ACCESS_KEY_ID = x[["AWS_ACCESS_KEY_ID"]])
-  Sys.setenv(AWS_SECRET_ACCESS_KEY = x[["AWS_SECRET_ACCESS_KEY"]])
-  Sys.setenv(AWS_SESSION_TOKEN = x[["AWS_SESSION_TOKEN"]])
-  Sys.setenv(AWS_DEFAULT_REGION = x[["AWS_DEFAULT_REGION"]])
-  Sys.setenv(AWS_REGION = x[["AWS_REGION"]])
-  cat(glue("Switched to AWS Profile: {p}"))
+#' JWT Expiration Date
+#'
+#' @param token Token to check.
+#'
+#' @return Timestamp with token expiry date.
+#' @export
+jwt_exp <- function(token) {
+  l <- jose::jwt_split(token)
+  structure(l$payload$exp, class = c("POSIXct", "POSIXt"))
+}
+
+#' JWT Validation
+#'
+#' Validates JWT by parsing it and checking its structure and expiration date.
+#'
+#' @param token JWT string.
+#'
+#' @return The input token if valid, else errors out.
+#' @export
+jwt_validate <- function(token) {
+  # https://github.com/r-lib/jose/blob/429a46/R/jwt.R#L171
+  .token_check_expiration_time <- function(payload) {
+    if (length(payload$exp)) {
+      stopifnot("exp claim is a number" = is.numeric(payload$exp))
+      expdate <- structure(payload$exp, class = c("POSIXct", "POSIXt"))
+      if (expdate < (Sys.time() - 60)) {
+        stop(paste("Token has expired on", expdate), call. = FALSE)
+      }
+    }
+    if (length(payload$nbf)) {
+      stopifnot("nbf claim is a number" = is.numeric(payload$nbf))
+      nbfdate <- structure(payload$nbf, class = c("POSIXct", "POSIXt"))
+      if (nbfdate > (Sys.time() + 60)) {
+        stop(paste("Token is not valid before", nbfdate), call. = FALSE)
+      }
+    }
+  }
+  # giving a friendlier error msg in case this isn't even valid jwt
+  tmp <- strsplit(token, ".", fixed = TRUE)[[1]]
+  msg <- "The input token is not a valid JWT"
+  assertthat::assert_that(length(tmp) %in% c(2, 3), msg = msg)
+  l <- jose::jwt_split(token)
+  .token_check_expiration_time(l[["payload"]])
+  token
 }
