@@ -26,8 +26,11 @@ requirements:
     - umccr::r-dracarys
     - r-fs
     - r-glue
+    - r-httr2
+    - r-jose
     - r-jsonlite
     - r-optparse
+    - r-paws
     - r-purrr
     - r-rathena
     - r-readr
@@ -46,8 +49,11 @@ requirements:
     - umccr::r-dracarys
     - r-fs
     - r-glue
+    - r-httr2
+    - r-jose
     - r-jsonlite
     - r-optparse
+    - r-paws
     - r-purrr
     - r-rathena
     - r-readr
