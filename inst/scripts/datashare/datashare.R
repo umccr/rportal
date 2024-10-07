@@ -29,11 +29,11 @@ if (!is.null(opt[["version"]])) {
 # devtools::install_github("umccr/dracarys")
 suppressMessages(library(cli, include.only = "cli_alert_info"))
 suppressMessages(library(dplyr))
-suppressMessages(library(dracarys, include.only = "gds_files_list_filter_relevant"))
+suppressMessages(library(dracarys, include.only = "ica_token_validate"))
 suppressMessages(library(fs, include.only = "dir_create"))
 suppressMessages(library(glue, include.only = "glue"))
 suppressMessages(library(readr, include.only = "write_csv"))
-suppressMessages(library(rportal, include.only = "meta_umccrise"))
+suppressMessages(library(rportal, include.only = "datashare_um"))
 suppressMessages(library(tidyr, include.only = c("pivot_longer", "unnest")))
 
 missing_flags <- NULL
@@ -63,13 +63,10 @@ wts <- opt[["wts"]]
 fs::dir_create(dirname(csv_output))
 cli::cli_alert_info("Start datasharing for {SubjectID}__{LibraryID_tumor}")
 
-env_und <- rportal::envvar_undefined()
-if (length(env_und) > 0) {
-  e <- paste(env_und, collapse = ", ")
-  cli::cli_abort("Following environment variables not defined: {e}")
-}
-
-# invisible(capture.output(rportal::awsvault_profile("upro")))
+# make sure you have logged into AWS and ICA
+c("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "ICA_ACCESS_TOKEN") |>
+  rportal::envvar_defined() |>
+  stopifnot()
 token_ica <- Sys.getenv("ICA_ACCESS_TOKEN") |> dracarys::ica_token_validate()
 
 if (wts) {
