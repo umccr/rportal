@@ -70,6 +70,6 @@ echo ""
 datashare.R \
   --subject_id SBJ0XXXX \
   --library_id_tumor L230XXXX \
+  --wts \
   --csv_output urls_SBJ0XXXX_L230XXXX.csv
 ```
-

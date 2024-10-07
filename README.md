@@ -1,12 +1,13 @@
 
 - [🔮 rportal - Interacting with the UMCCR Data
-  Portal](#-rportal---interacting-with-the-umccr-data-portal)
-  - [🍕 Installation](#-installation)
-  - [🌀 CLI](#-cli)
+  Portal](#crystal_ball-rportal---interacting-with-the-umccr-data-portal)
+  - [🍕 Installation](#pizza-installation)
+  - [🌀 CLI](#cyclone-cli)
     - [Bioinformatics Data Sharing](#bioinformatics-data-sharing)
-  - [🚕 Running](#-running)
+  - [🚕 Running](#taxi-running)
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/umccr/rportal/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/umccr/rportal/actions/workflows/R-CMD-check.yaml)
@@ -38,7 +39,7 @@ export PATH="${datashare_cli}:${PATH}"
 ```
 
     datashare.R --version
-    0.1.1 
+    0.1.2 
 
     #-----------------------------------#
     datashare.R --help
@@ -55,6 +56,9 @@ export PATH="${datashare_cli}:${PATH}"
 
     --library_id_tumor=LIBRARY_ID_TUMOR
             Library ID of tumor.
+
+    --wts
+            This is a WTS library.
 
     --csv_output=CSV_OUTPUT
             CSV output path.
@@ -74,5 +78,6 @@ export PATH="${datashare_cli}:${PATH}"
 datashare.R \
   --subject_id SBJ0XXXX \
   --library_id_tumor L230XXXX \
+  --wts \
   --csv_output urls_SBJ0XXXX_L230XXXX.csv
 ```
