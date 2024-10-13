@@ -63,8 +63,6 @@ c("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION") |>
   stopifnot()
 icav1_token <- Sys.getenv("ICA_ACCESS_TOKEN") |>
   dracarys::ica_token_validate()
-# this helps keep annoying reticulate prompt away
-Sys.setenv(RETICULATE_PYTHON = Sys.getenv("CONDA_PYTHON_EXE"))
 ```
 
 ```{r funcs_source}
@@ -232,7 +230,7 @@ gds_fastqs1 <- gds_outdirs_fastq |>
   mutate(
     list_fqs = list(
       dracarys::gds_files_list_fastq(
-        gdsdir = .data$gds_outdirs_fastq, token = icav1_token, page_size = 200
+        gdsdir = .data$gds_outdirs_fastq, token = icav1_token, page_size = 1000
       )
     )
   ) |>
