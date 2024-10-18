@@ -4,7 +4,10 @@ suppressMessages(library(optparse, include.only = "make_option"))
 option_list <- list(
   optparse::make_option("--subject_id", type = "character", help = "Subject ID."),
   optparse::make_option("--library_id_tumor", type = "character", help = "Library ID of tumor."),
-  optparse::make_option("--wts_wfrn_prefix", type = "character", help = "ICA Workflow Run Name prefix. Use if other than the default 'umccr__automated__wts_tumor_only'."),
+  optparse::make_option("--wts_wfrn_prefix",
+    type = "character", help = "ICA Workflow Run Name prefix. Use if other than the default.",
+    default = "umccr__automated__wts_tumor_only"
+  ),
   optparse::make_option("--wts", action = "store_true", type = "character", help = "This is a WTS library."),
   optparse::make_option("--csv_output", type = "character", help = "CSV output path."),
   optparse::make_option("--append", action = "store_true", help = "Append to existing file (or write to new one if file does not exist -- caution: no column headers are written)."),
