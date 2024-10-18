@@ -4,12 +4,20 @@
 \alias{datashare_wts}
 \title{Datashare WTS Results}
 \usage{
-datashare_wts(sid, lid, token_ica)
+datashare_wts(
+  sid,
+  lid,
+  wfrn_prefix = "umccr__automated__wts_tumor_only",
+  token_ica = Sys.getenv("ICA_ACCESS_TOKEN")
+)
 }
 \arguments{
 \item{sid}{SubjectID.}
 
 \item{lid}{LibraryID of WTS tumor.}
+
+\item{wfrn_prefix}{ICA workflow run name prefix. Specify if you need something
+other than the default 'umccr__automated__wts_tumor_only'.}
 
 \item{token_ica}{ICA_ACCESS_TOKEN.}
 }
@@ -18,4 +26,11 @@ Tibble with presigned URLs.
 }
 \description{
 Datashare WTS Results
+}
+\examples{
+\dontrun{
+datashare_wts(sid = "SBJ05560", lid = "L2401254")
+datashare_wts(sid = "SBJ05424", lid = "L2401135", wfrn_prefix = "umccr__atlas__wts_tumor_only")
+}
+
 }

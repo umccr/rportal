@@ -4,7 +4,7 @@
 \alias{datashare_um}
 \title{Datashare umccrise Results}
 \usage{
-datashare_um(sid, lid, token_ica)
+datashare_um(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN"))
 }
 \arguments{
 \item{sid}{SubjectID.}
@@ -18,4 +18,11 @@ Tibble with presigned URLs.
 }
 \description{
 Datashare umccrise Results
+}
+\examples{
+\dontrun{
+sid <- "SBJ03144"
+lid <- "L2301290"
+datashare_um(sid, lid)
+}
 }

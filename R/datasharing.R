@@ -6,9 +6,11 @@
 #'
 #' @return Tibble with presigned URLs.
 #' @examples
+#' \dontrun{
 #' sid <- "SBJ03144"
 #' lid <- "L2301290"
 #' datashare_um(sid, lid)
+#' }
 #' @export
 datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
   sid_lid <- glue("{sid}__{lid}")
@@ -42,7 +44,7 @@ datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
     "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__umccrise__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
-  d_um_raw <- rportal::portaldb_query_workflow(query_um)
+  d_um_raw <- portaldb_query_workflow(query_um)
   n_um_runs <- nrow(d_um_raw)
   if (n_um_runs == 0) {
     cli::cli_abort("No umccrise results found for {sid_lid}")
@@ -56,7 +58,7 @@ datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
     )
     cli::cli_alert_info(msg)
   }
-  d_um_tidy <- rportal::meta_umccrise(d_um_raw)
+  d_um_tidy <- meta_umccrise(d_um_raw)
   um_dragen_input <- d_um_tidy[["gds_indir_dragen_somatic"]]
   stopifnot(!is.na(um_dragen_input))
 
@@ -65,11 +67,11 @@ datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
     "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__wgs_tumor_normal__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
-  d_tn_raw <- rportal::portaldb_query_workflow(query_tn)
+  d_tn_raw <- portaldb_query_workflow(query_tn)
   if (nrow(d_tn_raw) == 0) {
     cli::cli_abort("No wgs_tumor_normal results found for {sid_lid}")
   }
-  d_tn_tidy <- rportal::meta_wgs_tumor_normal(d_tn_raw)
+  d_tn_tidy <- meta_wgs_tumor_normal(d_tn_raw)
   n_tn_runs <- nrow(d_tn_tidy)
   if (n_tn_runs > 1) {
     if (um_dragen_input %in% d_tn_tidy[["gds_outdir_dragen_somatic"]]) {
@@ -174,10 +176,19 @@ datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
 #' @param sid SubjectID.
 #' @param lid LibraryID of WTS tumor.
 #' @param token_ica ICA_ACCESS_TOKEN.
+#' @param wfrn_prefix ICA workflow run name prefix. Specify if you need something
+#' other than the default 'umccr__automated__wts_tumor_only'.
 #'
 #' @return Tibble with presigned URLs.
+#' @examples
+#' \dontrun{
+#' datashare_wts(sid = "SBJ05560", lid = "L2401254")
+#' datashare_wts(sid = "SBJ05424", lid = "L2401135", wfrn_prefix = "umccr__atlas__wts_tumor_only")
+#' }
+#'
 #' @export
-datashare_wts <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
+datashare_wts <- function(sid, lid, wfrn_prefix = "umccr__automated__wts_tumor_only",
+                          token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
   sid_lid <- glue("{sid}__{lid}")
   wts_files <- dplyr::tribble(
     ~regex, ~fun,
@@ -194,10 +205,11 @@ datashare_wts <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) 
   )
   query_wts <- glue(
     "WHERE \"type_name\" = 'wts_tumor_only' AND  \"end_status\" = 'Succeeded' AND ",
-    "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__wts_tumor_only__{sid_lid}') ",
+    "REGEXP_LIKE(\"wfr_name\", '{wfrn_prefix}__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
-  d_wts_raw <- rportal::portaldb_query_workflow(query_wts)
+  d_wts_raw <- portaldb_query_workflow(query_wts)
+
   n_wts_runs <- nrow(d_wts_raw)
   if (n_wts_runs == 0) {
     cli::cli_abort("No WTS results found for {sid_lid}")
@@ -211,7 +223,7 @@ datashare_wts <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) 
     )
     cli::cli_alert_info(msg)
   }
-  d_wts_tidy <- rportal::meta_wts_tumor_only(d_wts_raw)
+  d_wts_tidy <- meta_wts_tumor_only(d_wts_raw)
   d_wts_urls1 <- d_wts_tidy[["gds_outdir_dragen"]] |>
     dracarys::gds_list_files_filter_relevant(
       token = token_ica, include_url = TRUE, page_size = 100, regexes = wts_files
