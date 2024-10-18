@@ -6,9 +6,11 @@
 #'
 #' @return Tibble with presigned URLs.
 #' @examples
+#' \dontrun{
 #' sid <- "SBJ03144"
 #' lid <- "L2301290"
 #' datashare_um(sid, lid)
+#' }
 #' @export
 datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
   sid_lid <- glue("{sid}__{lid}")
@@ -174,10 +176,19 @@ datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
 #' @param sid SubjectID.
 #' @param lid LibraryID of WTS tumor.
 #' @param token_ica ICA_ACCESS_TOKEN.
+#' @param wfrn_prefix ICA workflow run name prefix. Specify if you need something
+#' other than the default 'umccr__automated__wts_tumor_only'.
 #'
 #' @return Tibble with presigned URLs.
+#' @examples
+#' \dontrun{
+#' datashare_wts(sid = "SBJ05560", lid = "L2401254")
+#' datashare_wts(sid = "SBJ05424", lid = "L2401135", wfrn_prefix = "umccr__atlas__wts_tumor_only")
+#' }
+#'
 #' @export
-datashare_wts <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
+datashare_wts <- function(sid, lid, wfrn_prefix = "umccr__automated__wts_tumor_only",
+                          token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
   sid_lid <- glue("{sid}__{lid}")
   wts_files <- dplyr::tribble(
     ~regex, ~fun,
@@ -194,10 +205,11 @@ datashare_wts <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) 
   )
   query_wts <- glue(
     "WHERE \"type_name\" = 'wts_tumor_only' AND  \"end_status\" = 'Succeeded' AND ",
-    "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__wts_tumor_only__{sid_lid}') ",
+    "REGEXP_LIKE(\"wfr_name\", '{wfrn_prefix}__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
   d_wts_raw <- rportal::portaldb_query_workflow(query_wts)
+
   n_wts_runs <- nrow(d_wts_raw)
   if (n_wts_runs == 0) {
     cli::cli_abort("No WTS results found for {sid_lid}")
@@ -210,6 +222,21 @@ datashare_wts <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) 
       "which ended at {d_wts_raw$end}."
     )
     cli::cli_alert_info(msg)
+  }
+  # see https://github.com/umccr/rportal/issues/24
+  x <- paste0(
+    "\"cl_config\": ",
+    "\"\\{\"sample_names_replace\":\\{\"PRJ220412\":\"Ref_1_Good\",",
+    "\"MDX210318\":\"Ref_2_Good\",\"PRJ220466\":\"Ref_3_Good\",",
+    "\"PRJ211234\":\"Ref_4_Bad\",\"PRJ220790\":\"Ref_5_Bad\",",
+    "\"L2200121_dragen_qualimap\":\"Ref_1_Good\",",
+    "\"L2101521_dragen_qualimap\":\"Ref_2_Good\",",
+    "\"L2200188_dragen_qualimap\":\"Ref_3_Good\",",
+    "\"L2101763_dragen_qualimap\":\"Ref_4_Bad\",",
+    "\"L2200311_dragen_qualimap\":\"Ref_5_Bad\"\\}\\}\","
+  )
+  if (wfrn_prefix != "umccr__automated__wts_tumor_only") {
+    d_wts_raw$input <- sub(x, "", d_wts_raw$input)
   }
   d_wts_tidy <- rportal::meta_wts_tumor_only(d_wts_raw)
   d_wts_urls1 <- d_wts_tidy[["gds_outdir_dragen"]] |>
