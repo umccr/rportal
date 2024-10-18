@@ -44,7 +44,7 @@ datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
     "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__umccrise__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
-  d_um_raw <- rportal::portaldb_query_workflow(query_um)
+  d_um_raw <- portaldb_query_workflow(query_um)
   n_um_runs <- nrow(d_um_raw)
   if (n_um_runs == 0) {
     cli::cli_abort("No umccrise results found for {sid_lid}")
@@ -58,7 +58,7 @@ datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
     )
     cli::cli_alert_info(msg)
   }
-  d_um_tidy <- rportal::meta_umccrise(d_um_raw)
+  d_um_tidy <- meta_umccrise(d_um_raw)
   um_dragen_input <- d_um_tidy[["gds_indir_dragen_somatic"]]
   stopifnot(!is.na(um_dragen_input))
 
@@ -67,11 +67,11 @@ datashare_um <- function(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN")) {
     "REGEXP_LIKE(\"wfr_name\", 'umccr__automated__wgs_tumor_normal__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
-  d_tn_raw <- rportal::portaldb_query_workflow(query_tn)
+  d_tn_raw <- portaldb_query_workflow(query_tn)
   if (nrow(d_tn_raw) == 0) {
     cli::cli_abort("No wgs_tumor_normal results found for {sid_lid}")
   }
-  d_tn_tidy <- rportal::meta_wgs_tumor_normal(d_tn_raw)
+  d_tn_tidy <- meta_wgs_tumor_normal(d_tn_raw)
   n_tn_runs <- nrow(d_tn_tidy)
   if (n_tn_runs > 1) {
     if (um_dragen_input %in% d_tn_tidy[["gds_outdir_dragen_somatic"]]) {
@@ -208,7 +208,7 @@ datashare_wts <- function(sid, lid, wfrn_prefix = "umccr__automated__wts_tumor_o
     "REGEXP_LIKE(\"wfr_name\", '{wfrn_prefix}__{sid_lid}') ",
     "ORDER BY \"start\" DESC;"
   )
-  d_wts_raw <- rportal::portaldb_query_workflow(query_wts)
+  d_wts_raw <- portaldb_query_workflow(query_wts)
 
   n_wts_runs <- nrow(d_wts_raw)
   if (n_wts_runs == 0) {
@@ -238,7 +238,7 @@ datashare_wts <- function(sid, lid, wfrn_prefix = "umccr__automated__wts_tumor_o
   if (wfrn_prefix != "umccr__automated__wts_tumor_only") {
     d_wts_raw$input <- sub(x, "", d_wts_raw$input)
   }
-  d_wts_tidy <- rportal::meta_wts_tumor_only(d_wts_raw)
+  d_wts_tidy <- meta_wts_tumor_only(d_wts_raw)
   d_wts_urls1 <- d_wts_tidy[["gds_outdir_dragen"]] |>
     dracarys::gds_list_files_filter_relevant(
       token = token_ica, include_url = TRUE, page_size = 100, regexes = wts_files
