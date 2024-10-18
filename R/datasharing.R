@@ -223,21 +223,6 @@ datashare_wts <- function(sid, lid, wfrn_prefix = "umccr__automated__wts_tumor_o
     )
     cli::cli_alert_info(msg)
   }
-  # see https://github.com/umccr/rportal/issues/24
-  x <- paste0(
-    "\"cl_config\": ",
-    "\"\\{\"sample_names_replace\":\\{\"PRJ220412\":\"Ref_1_Good\",",
-    "\"MDX210318\":\"Ref_2_Good\",\"PRJ220466\":\"Ref_3_Good\",",
-    "\"PRJ211234\":\"Ref_4_Bad\",\"PRJ220790\":\"Ref_5_Bad\",",
-    "\"L2200121_dragen_qualimap\":\"Ref_1_Good\",",
-    "\"L2101521_dragen_qualimap\":\"Ref_2_Good\",",
-    "\"L2200188_dragen_qualimap\":\"Ref_3_Good\",",
-    "\"L2101763_dragen_qualimap\":\"Ref_4_Bad\",",
-    "\"L2200311_dragen_qualimap\":\"Ref_5_Bad\"\\}\\}\","
-  )
-  if (wfrn_prefix != "umccr__automated__wts_tumor_only") {
-    d_wts_raw$input <- sub(x, "", d_wts_raw$input)
-  }
   d_wts_tidy <- meta_wts_tumor_only(d_wts_raw)
   d_wts_urls1 <- d_wts_tidy[["gds_outdir_dragen"]] |>
     dracarys::gds_list_files_filter_relevant(
