@@ -38,7 +38,7 @@ meta_wts_alignment_qc <- function(pmeta, status = "Succeeded") {
       # output
       gds_outdir_dragen = purrr::map_chr(.data$output, list("dragen_alignment_output_directory", "location"), .default = NA),
       gds_outdir_multiqc = purrr::map_chr(.data$output, list("multiqc_output_directory", "location"), .default = NA),
-      SubjectID = sub("umccr__automated__wts_alignment_qc__(SBJ.*)__L.*", "\\1", .data$wfr_name),
+      SubjectID = sub("umccr__.*__wts_alignment_qc__(SBJ.*)__L.*", "\\1", .data$wfr_name),
     ) |>
     tidyr::separate_wider_delim(
       cols = "rgid", delim = ".",

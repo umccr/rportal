@@ -37,7 +37,7 @@ meta_wts_tumor_only <- function(pmeta, status = "Succeeded") {
       gds_outdir_multiqc = purrr::map_chr(.data$output, list("multiqc_output_directory", "location"), .default = NA),
       gds_outdir_arriba = purrr::map_chr(.data$output, list("arriba_output_directory", "location"), .default = NA),
       gds_outdir_qualimap = purrr::map_chr(.data$output, list("qualimap_output_directory", "location"), .default = NA),
-      SubjectID = sub("umccr__automated__wts_tumor_only__(SBJ.*)__L.*", "\\1", .data$wfr_name)
+      SubjectID = sub("umccr__.*__wts_tumor_only__(SBJ.*)__L.*", "\\1", .data$wfr_name)
     )
   d |>
     dplyr::select(
