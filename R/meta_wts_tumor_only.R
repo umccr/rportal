@@ -42,11 +42,15 @@ meta_wts_tumor_only <- function(pmeta, status = "Succeeded") {
         !grepl("external_apgi", .data$wfr_name),
         .data$SubjectID,
         sub("umccr__external_apgi__wts_tumor_only__(.*)", "\\1", .data$wfr_name)
-      )
+      ),
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
     )
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
+      "year", "durationMin",
       "SubjectID",
       LibraryID = "rglb",
       SampleID = "rgsm",

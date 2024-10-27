@@ -76,12 +76,16 @@ meta_umccrise <- function(pmeta, status = "Succeeded") {
       gds_outdir_umccrise1 = purrr::map_chr(.data$output, list("umccrise_output_directory", "location"), .default = NA),
       gds_outdir_umccrise = dplyr::if_else(
         is.na(.data$gds_outdir_umccrise1), .data$gds_outdir_umccrise2, .data$gds_outdir_umccrise1
-      )
+      ),
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
     )
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
       -dplyr::any_of(c("sequence_run", "batch_run")), # NA for umccrise
+      "year", "durationMin",
       "SubjectID",
       "LibraryID_tumor",
       "LibraryID_normal",

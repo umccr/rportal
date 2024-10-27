@@ -63,11 +63,15 @@ meta_rnasum <- function(pmeta, status = "Succeeded") {
       # output
       gds_outfile_rnasum_html = purrr::map_chr(.data$output, list("rnasum_html", "location"), .default = NA),
       gds_outdir_rnasum = purrr::map_chr(.data$output, list("rnasum_output_directory", "location"), .default = NA),
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
     )
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
       -dplyr::any_of(c("sequence_run", "batch_run")), # NA for rnasum
+      "year", "durationMin",
       SubjectID = "sbjid1",
       LibraryID = "libid1",
       SampleID = "rnasum_sample_name",

@@ -36,11 +36,15 @@ meta_oncoanalyser_wgs <- function(pmeta, status = "Succeeded") {
       gds_bam_tumor = purrr::map_chr(.data$input, "tumor_wgs_bam", .default = NA),
       gds_bam_normal = purrr::map_chr(.data$input, "normal_wgs_bam", .default = NA),
       # output
-      s3_outdir_oncoanalyser = purrr::map_chr(.data$output, "output_directory", .default = NA)
+      s3_outdir_oncoanalyser = purrr::map_chr(.data$output, "output_directory", .default = NA),
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
     )
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
+      "year", "durationMin",
       "SubjectID",
       "LibraryID_tumor",
       "LibraryID_normal",

@@ -65,12 +65,16 @@ meta_wgs_tumor_normal <- function(pmeta, status = "Succeeded") {
         !grepl("external_apgi", .data$wfr_name),
         .data$SubjectID,
         sub("umccr__external_apgi__wgs_tumor_normal__(.*)", "\\1", .data$wfr_name)
-      )
+      ),
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
     )
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
       -dplyr::any_of(c("sequence_run", "batch_run")), # NA for wgs_tumor_normal
+      "year", "durationMin",
       "SubjectID",
       "LibraryID_tumor",
       "LibraryID_normal",

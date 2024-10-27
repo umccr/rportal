@@ -37,11 +37,15 @@ meta_sash <- function(pmeta, status = "Succeeded") {
       gds_indir_dragen_germline = purrr::map_chr(.data$input, "dragen_germline_dir", .default = NA),
       s3_indir_oncoanalyser = purrr::map_chr(.data$input, "oncoanalyser_dir", .default = NA),
       # output
-      s3_outdir_sash = purrr::map_chr(.data$output, "output_directory", .default = NA)
+      s3_outdir_sash = purrr::map_chr(.data$output, "output_directory", .default = NA),
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
     )
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
+      "year", "durationMin",
       "SubjectID",
       "LibraryID_tumor",
       "LibraryID_normal",

@@ -61,9 +61,14 @@ meta_bcl_convert <- function(pmeta, status = "Succeeded") {
   d |>
     tidyr::separate_wider_regex("sample", c(sampleid = ".*", "_", libid1 = "L.*"), cols_remove = FALSE) |>
     tidyr::separate_wider_regex("libid1", c(libid2 = ".*", "_", topup_or_rerun = ".*"), cols_remove = FALSE, too_few = "align_start") |>
-    dplyr::mutate(gds_outdir_reports = file.path(dirname(.data$gds_outdir_multiqc), .data$batch_name, "Reports")) |>
+    dplyr::mutate(
+      gds_outdir_reports = file.path(dirname(.data$gds_outdir_multiqc), .data$batch_name, "Reports"),
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+    ) |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
+      "year", "durationMin",
       -dplyr::any_of(c("batch_run")), # NA for bcl_convert
       SampleID = "sampleid",
       LibraryID = "libid2",
