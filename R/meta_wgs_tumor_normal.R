@@ -60,7 +60,12 @@ meta_wgs_tumor_normal <- function(pmeta, status = "Succeeded") {
       gds_outfile_dragen_somatic_snv_vcf = purrr::map_chr(.data$output, list("somatic_snv_vcf_out", "location"), .default = NA),
       gds_outfile_dragen_somatic_snv_vcf_hardfilt = purrr::map_chr(.data$output, list("somatic_snv_vcf_hard_filtered_out", "location"), .default = NA),
       gds_outfile_dragen_somatic_sv_vcf = purrr::map_chr(.data$output, list("somatic_structural_vcf_out", "location"), .default = NA),
-      SubjectID = sub("umccr__automated__wgs_tumor_normal__(SBJ.....)__L.*", "\\1", .data$wfr_name) # infer from wfr name
+      SubjectID = sub("umccr__automated__wgs_tumor_normal__(SBJ.....)__L.*", "\\1", .data$wfr_name),
+      SubjectID = ifelse(
+        !grepl("external_apgi", .data$wfr_name),
+        .data$SubjectID,
+        sub("umccr__external_apgi__wgs_tumor_normal__(.*)", "\\1", .data$wfr_name)
+      )
     )
   d |>
     dplyr::select(
