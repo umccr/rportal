@@ -178,7 +178,22 @@ tot_wf_counts <- wf |>
   tidyr::unnest(main)
 ```
 
-## Total
+---
+
+```{r}
+#| fig-height: 7.5
+ggplot2::theme_set(ggplot2::theme_bw())
+p <- tot_wf_counts |>
+  ggplot(aes(x = name)) +
+  geom_bar(aes(fill = year), position = position_dodge(preserve = "single")) +
+  scale_y_continuous(breaks = scales::pretty_breaks(20)) +
+  coord_flip() +
+  ggtitle("Total number of workflows per year")
+p
+# plotly::ggplotly(p)
+```
+
+---
 
 ```{r}
 tot_wf_counts |>
@@ -187,7 +202,7 @@ tot_wf_counts |>
   reactable::reactable(
     bordered = TRUE,
     filterable = TRUE,
-    height = 600,
+    height = 500,
     fullWidth = TRUE,
     highlight = TRUE,
     pagination = FALSE,
@@ -199,18 +214,6 @@ tot_wf_counts |>
   )
 ```
 
----
-
-```{r}
-ggplot2::theme_set(ggplot2::theme_bw())
-p <- tot_wf_counts |>
-  ggplot(aes(x = name)) +
-  geom_bar(aes(fill = year), position = position_dodge(preserve = "single")) +
-  scale_y_continuous(breaks = scales::pretty_breaks(20)) +
-  coord_flip() +
-  ggtitle("Total number of workflows per year")
-plotly::ggplotly(p)
-```
 
 ```{r}
 wf_name <- function(x) {
@@ -258,9 +261,11 @@ wf_name("bcl_convert") |>
   )
 ```
 
-## Assays
+---
 
 ```{r}
+#| fig-width: 10
+#| fig-height: 7.5
 bcl <- wf_name("bcl_convert") |>
   # select(portal_run_id, start, year, durationMin, LibraryID, batch_name, runfolder_name) |>
   select(portal_run_id, start, year, durationMin, LibraryID, batch_name, runfolder_name, topup_or_rerun) |>
@@ -271,49 +276,57 @@ p <- bcl |>
   ggplot(aes(x = Assay)) +
   geom_bar(aes(fill = year), position = position_dodge(preserve = "single")) +
   scale_y_continuous(breaks = scales::pretty_breaks(20)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   coord_flip() +
   ggtitle("Library assays per year")
-plotly::ggplotly(p)
+p
+# plotly::ggplotly(p)
 ```
 
-## ProjectOwner
+---
 
 ```{r}
+#| fig-height: 7.5
 p <- bcl |>
   # filter(year != "2022") |>
   ggplot(aes(x = ProjectOwner)) +
   geom_bar(aes(fill = year), position = position_dodge(preserve = "single")) +
   scale_y_continuous(breaks = scales::pretty_breaks(20)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   coord_flip() +
   ggtitle("Libraries per ProjectOwner")
-plotly::ggplotly(p)
+p
+# plotly::ggplotly(p)
 ```
-
 
 # Duration
 
 ---
 
 ```{r}
+#| fig-height: 7.5
 p <- tot_wf_counts |>
   ggplot(aes(x = name, y = durationMin)) +
   geom_bar(aes(fill = year), position = position_dodge(preserve = "single"), stat = "summary", fun = "mean") +
   scale_y_continuous(breaks = scales::pretty_breaks(20)) +
   coord_flip() +
   ggtitle("**Average** Runtime Per Workflow (Minutes)")
-plotly::ggplotly(p)
+p
+# plotly::ggplotly(p)
 ```
 
 ---
 
 ```{r}
+#| fig-height: 7.5
 p <- tot_wf_counts |>
   ggplot(aes(x = name, y = durationMin)) +
   geom_bar(aes(fill = year), position = position_dodge(preserve = "single"), stat = "summary", fun = "median") +
   scale_y_continuous(breaks = scales::pretty_breaks(20)) +
   coord_flip() +
   ggtitle("**Median** Runtime Per Workflow (Minutes)")
-plotly::ggplotly(p)
+p
+# plotly::ggplotly(p)
 ```
 
 
@@ -441,6 +454,7 @@ bcl_topups <- bcl |>
 ## Umccrise
 
 ```{r}
+#| fig-height: 5
 um <- wf_name("umccrise")
 # filter(LibraryID_tumor %in% rep_all$LibraryID) |>
 # select(portal_run_id, start, end, durationMin, year, SubjectID, LibraryID_tumor)
@@ -494,13 +508,15 @@ um_rep <- bind_rows(
 p <- um_rep |>
   ggplot(aes(x = DateReported, y = TotalDays)) +
   geom_point()
-plotly::ggplotly(p)
+p
+# plotly::ggplotly(p)
 summary(um_rep$TotalDays)
 ```
 
 ## ctTSO
 
 ```{r}
+#| fig-height: 5
 tso <- wf_name("tso_ctdna_tumor_only")
 # all reported tumor libs have tso runs
 # rep_all |>
@@ -521,7 +537,8 @@ tso_rep <- tso |>
 p <- tso_rep |>
   ggplot(aes(x = DateReported, y = TotalDays)) +
   geom_point()
-plotly::ggplotly(p)
+p
+# plotly::ggplotly(p)
 summary(tso_rep$TotalDays)
 ```
 
