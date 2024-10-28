@@ -45,7 +45,7 @@ meta_wts_tumor_only <- function(pmeta, status = "Succeeded") {
       ),
       # other
       year = as.character(lubridate::year(.data$start)),
-      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+      durationMin = round(as.numeric(difftime(.data$end, .data$start, units = "mins")))
     )
   d |>
     dplyr::select(

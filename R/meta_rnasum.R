@@ -65,7 +65,7 @@ meta_rnasum <- function(pmeta, status = "Succeeded") {
       gds_outdir_rnasum = purrr::map_chr(.data$output, list("rnasum_output_directory", "location"), .default = NA),
       # other
       year = as.character(lubridate::year(.data$start)),
-      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+      durationMin = round(as.numeric(difftime(.data$end, .data$start, units = "mins")))
     )
   d |>
     dplyr::select(

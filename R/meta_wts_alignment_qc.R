@@ -41,7 +41,7 @@ meta_wts_alignment_qc <- function(pmeta, status = "Succeeded") {
       SubjectID = sub("umccr__.*__wts_alignment_qc__(SBJ.*)__L.*", "\\1", .data$wfr_name),
       # other
       year = as.character(lubridate::year(.data$start)),
-      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+      durationMin = round(as.numeric(difftime(.data$end, .data$start, units = "mins")))
     ) |>
     tidyr::separate_wider_delim(
       cols = "rgid", delim = ".",

@@ -40,7 +40,7 @@ meta_sash <- function(pmeta, status = "Succeeded") {
       s3_outdir_sash = purrr::map_chr(.data$output, "output_directory", .default = NA),
       # other
       year = as.character(lubridate::year(.data$start)),
-      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+      durationMin = round(as.numeric(difftime(.data$end, .data$start, units = "mins")))
     )
   d |>
     dplyr::select(

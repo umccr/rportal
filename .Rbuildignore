@@ -17,5 +17,8 @@
 ^nogit$
 ^vignettes$
 inst/reports/datashare/nogit
+inst/reports/mega_seqrunsum/.quarto
+inst/reports/mega_seqrunsum/nogit
+inst/reports/mega_seqrunsum/report_files
 inst/reports/seqrunsum/.quarto
 inst/reports/seqrunsum/nogit

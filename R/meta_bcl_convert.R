@@ -64,7 +64,7 @@ meta_bcl_convert <- function(pmeta, status = "Succeeded") {
     dplyr::mutate(
       gds_outdir_reports = file.path(dirname(.data$gds_outdir_multiqc), .data$batch_name, "Reports"),
       year = as.character(lubridate::year(.data$start)),
-      durationMin = round(as.numeric(difftime(end, start, units = "mins")))
+      durationMin = round(as.numeric(difftime(.data$end, .data$start, units = "mins")))
     ) |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
