@@ -504,7 +504,8 @@ um_rep <- bind_rows(
     AnalysisEnd = as.character(glue::glue("{end_year}-{end_month}-{end_day}")),
     AnalysisEnd = lubridate::ymd(AnalysisEnd),
     TotalDays = as.integer(DateReported - AnalysisEnd)
-  )
+  ) |>
+  select(-c(end_year, end_month, end_day))
 p <- um_rep |>
   ggplot(aes(x = DateReported, y = TotalDays)) +
   geom_jitter(width = 0.8, alpha = 0.5) +
@@ -534,7 +535,8 @@ tso_rep <- tso |>
     AnalysisEnd = as.character(glue::glue("{end_year}-{end_month}-{end_day}")),
     AnalysisEnd = lubridate::ymd(AnalysisEnd),
     TotalDays = as.integer(DateReported - AnalysisEnd)
-  )
+  ) |>
+  select(-c(end_year, end_month, end_day))
 p <- tso_rep |>
   ggplot(aes(x = DateReported, y = TotalDays)) +
   geom_jitter(width = 0.8, alpha = 0.5) +
@@ -542,5 +544,17 @@ p <- tso_rep |>
 p
 # plotly::ggplotly(p)
 summary(tso_rep$TotalDays)
+```
+
+```{r}
+rep_clean <- bind_rows(um_rep, tso_rep) |>
+  rename(
+    BioinfoEndDate = "AnalysisEnd",
+    PortalRunId = "portal_run_id",
+    Year = "year",
+    CurationEndDate = "DateReported",
+  ) |>
+  select(PortalRunId, Assay, SubjectID, LibraryID, Year, BioinfoEndDate, CurationEndDate, TotalDays)
+readr::write_csv(rep_clean, here("inst/reports/mega_seqrunsum", "nogit/report_return_dates_2023-2024_clean.csv"))
 ```
 
