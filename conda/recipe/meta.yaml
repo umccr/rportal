@@ -29,6 +29,7 @@ requirements:
     - r-httr2
     - r-jose
     - r-jsonlite
+    - r-lubridate
     - r-optparse
     - r-paws
     - r-purrr
@@ -52,6 +53,7 @@ requirements:
     - r-httr2
     - r-jose
     - r-jsonlite
+    - r-lubridate
     - r-optparse
     - r-paws
     - r-purrr
