@@ -507,7 +507,8 @@ um_rep <- bind_rows(
   )
 p <- um_rep |>
   ggplot(aes(x = DateReported, y = TotalDays)) +
-  geom_point()
+  geom_jitter(width = 0.8, alpha = 0.5) +
+  ggtitle(glue("{nrow(um_rep)} libraries"))
 p
 # plotly::ggplotly(p)
 summary(um_rep$TotalDays)
@@ -536,7 +537,8 @@ tso_rep <- tso |>
   )
 p <- tso_rep |>
   ggplot(aes(x = DateReported, y = TotalDays)) +
-  geom_point()
+  geom_jitter(width = 0.8, alpha = 0.5) +
+  ggtitle(glue("{nrow(tso_rep)} libraries"))
 p
 # plotly::ggplotly(p)
 summary(tso_rep$TotalDays)
