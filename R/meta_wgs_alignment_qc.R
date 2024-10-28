@@ -39,6 +39,9 @@ meta_wgs_alignment_qc <- function(pmeta, status = "Succeeded") {
       gds_outdir_dragen = purrr::map_chr(.data$output, list("dragen_alignment_output_directory", "location"), .default = NA),
       gds_outdir_multiqc = purrr::map_chr(.data$output, list("multiqc_output_directory", "location"), .default = NA),
       SubjectID = sub("umccr__.*__wgs_alignment_qc__(SBJ.*)__L.*", "\\1", .data$wfr_name),
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(.data$end, .data$start, units = "mins")))
     ) |>
     tidyr::separate_wider_delim(
       cols = "rgid", delim = ".",
@@ -48,6 +51,7 @@ meta_wgs_alignment_qc <- function(pmeta, status = "Succeeded") {
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
+      "year", "durationMin",
       "SubjectID",
       LibraryID = "rglb",
       SampleID = "rgsm",

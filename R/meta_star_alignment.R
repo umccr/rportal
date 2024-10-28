@@ -34,11 +34,15 @@ meta_star_alignment <- function(pmeta, status = "Succeeded") {
       gds_fq_fwd = purrr::map_chr(.data$input, "fastq_fwd", .default = NA),
       gds_fq_rev = purrr::map_chr(.data$input, "fastq_rev", .default = NA),
       # output
-      s3_outdir_star = purrr::map_chr(.data$output, "output_directory", .default = NA)
+      s3_outdir_star = purrr::map_chr(.data$output, "output_directory", .default = NA),
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(.data$end, .data$start, units = "mins")))
     )
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
+      "year", "durationMin",
       "SubjectID",
       "LibraryID",
       "SampleID",

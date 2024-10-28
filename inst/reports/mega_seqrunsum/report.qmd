@@ -1,0 +1,546 @@
+---
+title: "{{< meta params.title >}}"
+subtitle: "Period: 2022-01-01 to 2024-10-27"
+author: "UMCCR - Genomics Platform Group"
+date: now
+date-format: "YYYY-MM-DD HH:mm Z"
+execute:
+  echo: false
+  eval: true
+format: revealjs
+params:
+  title: "UMCCR PortalDB Workflow Summary"
+---
+
+```{r}
+#| label: pkg_load
+#| message: false
+{
+  require(assertthat, include.only = "assert_that")
+  require(dplyr)
+  require(dracarys, include.only = "session_info_kable")
+  require(glue, include.only = "glue")
+  require(here, include.only = "here")
+  require(jsonlite, include.only = "fromJSON")
+  require(kableExtra, include.only = "kbl")
+  require(purrr, include.only = "map")
+  require(rportal, include.only = "portaldb_query_workflow")
+  require(readr, include.only = "cols")
+  require(tibble, include.only = "as_tibble")
+  require(tidyr, include.only = "unnest")
+  require(knitr, include.only = "kable")
+  require(ggplot2)
+}
+set.seed(42)
+```
+
+```{r}
+#| label: envvars
+#| eval: false
+# make sure you have logged into AWS and ICA
+c("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION") |>
+  rportal::envvar_defined() |>
+  stopifnot()
+```
+
+```{r funcs_source}
+source(here("inst/reports/mega_seqrunsum/funcs.R"))
+```
+
+```{r}
+#| label: vars
+#| eval: false
+wf_fun <- tibble::tribble(
+  ~name,
+  "bcl_convert",
+  "tso_ctdna_tumor_only",
+  "wgs_alignment_qc",
+  "wts_alignment_qc",
+  "wts_tumor_only",
+  "wgs_tumor_normal",
+  "umccrise",
+  "rnasum",
+  "star_alignment",
+  "oncoanalyser_wts",
+  "oncoanalyser_wgs",
+  "oncoanalyser_wgts_existing_both",
+  "sash"
+) |>
+  mutate(func = glue("rportal::meta_{name}"))
+```
+
+```{r}
+#| label: query_workflow_table
+#| message: false
+#| eval: false
+# Grab all rows from workflow table
+# query_wf <- glue('ORDER BY "start" DESC;')
+# wf_raw <- rportal::portaldb_query_workflow(query_wf)
+rds_wf <- here("inst/reports/mega_seqrunsum/nogit", "wf_2024-10-25.rds")
+# saveRDS(wf_raw, rds_wf)
+wf_raw <- readRDS(rds_wf)
+```
+
+
+```{r}
+#| label: tidy_workflow_table
+#| eval: false
+# date_cutoff <- as.POSIXct("2022-01-01 00:00:01 AEDT")
+# wf <- wf_raw |>
+#   filter(start > date_cutoff) |>
+#   filter(end_status == "Succeeded")
+# list of tidy tbls per wf
+# wf_tidy <- wf_fun |>
+#   rowwise() |>
+#   mutate(tidy_meta = list(funcs$func_eval(.data$func)(wf))) |>
+#   select("name", "tidy_meta")
+rds_wf_tidy <- here("inst/reports/mega_seqrunsum/nogit", "wf_tidy_2024-10-27.rds")
+# saveRDS(wf_tidy, rds_wf_tidy)
+wf_tidy <- readRDS(rds_wf_tidy)
+# grab all libids/sbjids involved in any of the workflows
+# libids <- funcs$get_ids(wf_tidy, "LibraryID")
+```
+
+```{r}
+#| label: query_limsrow_table
+#| eval: false
+# query_lims <- glue('ORDER BY "library_id" DESC;')
+# lims_raw <- rportal::portaldb_query_limsrow(query_lims)
+rds_lims <- here("inst/reports/mega_seqrunsum/nogit", "lims_2024-10-27.rds")
+# saveRDS(lims_raw, rds_lims)
+lims_raw <- readRDS(rds_lims)
+lims_tidy <- lims_raw |>
+  tidyr::separate_wider_delim(
+    library_id,
+    delim = "_", names = c("library_id", "topup_or_rerun"), too_few = "align_start"
+  ) |>
+  select(
+    SubjectID = "subject_id",
+    SampleID = "sample_id",
+    LibraryID = "library_id",
+    ExternalSubjectID = "external_subject_id",
+    ProjectOwner = "project_owner",
+    ProjectName = "project_name",
+    Type = "type",
+    Phenotype = "phenotype",
+    Topup = "topup",
+    Workflow = "workflow",
+    Assay = "assay",
+    Source = "source",
+  ) |>
+  distinct() |>
+  filter(
+    !(LibraryID %in% "L2300925" & SampleID %in% "PTC_HCC1395"),
+    !(LibraryID %in% "L2400357" & Workflow %in% "clinical"),
+    !(LibraryID %in% "L2300952" & SampleID %in% "PTC_HCC1143"),
+    !(LibraryID %in% paste0("L2000", 431:437) & ProjectName %in% "Testing"),
+    !(LibraryID %in% "LPRJ230021" & SubjectID %in% NA),
+    !(LibraryID %in% "L2101562" & Workflow %in% "research"),
+    !(LibraryID %in% "L2000251" & Workflow %in% "research"),
+    !(LibraryID %in% "LPRJ210843" & Phenotype %in% NA),
+    !(LibraryID %in% "L2101737" & ProjectName %in% "KRAS-WT"),
+    !(LibraryID %in% "LPRJ210514" & Workflow %in% "qc"),
+    !(LibraryID %in% "LPRJ210515" & Workflow %in% "qc"),
+    !(LibraryID %in% "LPRJ210517" & Workflow %in% "qc"),
+    !(
+      LibraryID %in% c(
+        "L1900180",
+        paste0("L1900", c(820:827, 833:836)),
+        paste0("L2000", c("069", 172:183, 185:196, 198:210, 212, 411:416, 568, 647:652))
+      ) & Workflow %in% NA)
+  )
+rds_lims_tidy <- here("inst/reports/mega_seqrunsum/nogit", "lims_tidy_2024-10-27.rds")
+saveRDS(lims_tidy, rds_lims_tidy)
+```
+
+```{r}
+#| label: load_data
+wf <- here("inst/reports/mega_seqrunsum/nogit", "wf_tidy_2024-10-27.rds") |>
+  readRDS() |>
+  ungroup()
+lims <- here("inst/reports/mega_seqrunsum/nogit", "lims_tidy_2024-10-27.rds") |>
+  readRDS()
+```
+
+
+# Workflow Counts
+
+```{r}
+tot_wf_counts <- wf |>
+  mutate(
+    main = purrr::map(.data$tidy_meta, \(tbl) {
+      tbl |>
+        select("year", "start", "durationMin", "portal_run_id") |>
+        distinct()
+    })
+  ) |>
+  select(name, main) |>
+  tidyr::unnest(main)
+```
+
+---
+
+```{r}
+#| fig-height: 7.5
+ggplot2::theme_set(ggplot2::theme_bw())
+p <- tot_wf_counts |>
+  ggplot(aes(x = name)) +
+  geom_bar(aes(fill = year), position = position_dodge(preserve = "single")) +
+  scale_y_continuous(breaks = scales::pretty_breaks(20)) +
+  coord_flip() +
+  ggtitle("Total number of workflows per year")
+p
+# plotly::ggplotly(p)
+```
+
+---
+
+```{r}
+tot_wf_counts |>
+  count(name, year) |>
+  arrange(name, year) |>
+  reactable::reactable(
+    bordered = TRUE,
+    filterable = TRUE,
+    height = 500,
+    fullWidth = TRUE,
+    highlight = TRUE,
+    pagination = FALSE,
+    resizable = TRUE,
+    searchable = TRUE,
+    sortable = TRUE,
+    striped = TRUE,
+    wrap = FALSE
+  )
+```
+
+
+```{r}
+wf_name <- function(x) {
+  wf |>
+    filter(.data$name == x) |>
+    select(-"name") |>
+    tidyr::unnest(tidy_meta)
+}
+```
+
+## bcl_convert
+
+Assay types and number of libraries loaded on each run:
+
+```{r}
+wf_name("bcl_convert") |>
+  select(year, start, durationMin, portal_run_id, batch_name, runfolder_name) |>
+  mutate(nlib = n(), .by = c("portal_run_id", "batch_name")) |>
+  mutate(batch_name_nlib = glue("{batch_name} ({nlib})")) |>
+  distinct() |>
+  mutate(batches_nlib = paste(batch_name_nlib, collapse = ", "), .by = "portal_run_id") |>
+  select(-c(batch_name, nlib, batch_name_nlib)) |>
+  distinct() |>
+  reactable::reactable(
+    height = 800,
+    width = 2000,
+    pagination = FALSE,
+    fullWidth = TRUE,
+    bordered = TRUE,
+    groupBy = "year",
+    onClick = "expand",
+    rowStyle = list(cursor = "pointer"),
+    columns = list(
+      year = reactable::colDef(align = "left")
+    ),
+    theme = reactable::reactableTheme(
+      borderColor = "#dfe2e5",
+      stripedColor = "#f6f8fa",
+      highlightColor = "#f0f5f9",
+      style = list(
+        fontFamily = "Monaco",
+        fontSize = "0.875rem"
+      )
+    )
+  )
+```
+
+---
+
+```{r}
+#| fig-width: 10
+#| fig-height: 7.5
+bcl <- wf_name("bcl_convert") |>
+  # select(portal_run_id, start, year, durationMin, LibraryID, batch_name, runfolder_name) |>
+  select(portal_run_id, start, year, durationMin, LibraryID, batch_name, runfolder_name, topup_or_rerun) |>
+  distinct() |>
+  left_join(lims, by = "LibraryID")
+p <- bcl |>
+  mutate(Assay = ifelse(grepl("10X", .data$Assay), "10X", .data$Assay)) |>
+  ggplot(aes(x = Assay)) +
+  geom_bar(aes(fill = year), position = position_dodge(preserve = "single")) +
+  scale_y_continuous(breaks = scales::pretty_breaks(20)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip() +
+  ggtitle("Library assays per year")
+p
+# plotly::ggplotly(p)
+```
+
+---
+
+```{r}
+#| fig-height: 7.5
+p <- bcl |>
+  # filter(year != "2022") |>
+  ggplot(aes(x = ProjectOwner)) +
+  geom_bar(aes(fill = year), position = position_dodge(preserve = "single")) +
+  scale_y_continuous(breaks = scales::pretty_breaks(20)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip() +
+  ggtitle("Libraries per ProjectOwner")
+p
+# plotly::ggplotly(p)
+```
+
+# Duration
+
+---
+
+```{r}
+#| fig-height: 7.5
+p <- tot_wf_counts |>
+  ggplot(aes(x = name, y = durationMin)) +
+  geom_bar(aes(fill = year), position = position_dodge(preserve = "single"), stat = "summary", fun = "mean") +
+  scale_y_continuous(breaks = scales::pretty_breaks(20)) +
+  coord_flip() +
+  ggtitle("**Average** Runtime Per Workflow (Minutes)")
+p
+# plotly::ggplotly(p)
+```
+
+---
+
+```{r}
+#| fig-height: 7.5
+p <- tot_wf_counts |>
+  ggplot(aes(x = name, y = durationMin)) +
+  geom_bar(aes(fill = year), position = position_dodge(preserve = "single"), stat = "summary", fun = "median") +
+  scale_y_continuous(breaks = scales::pretty_breaks(20)) +
+  coord_flip() +
+  ggtitle("**Median** Runtime Per Workflow (Minutes)")
+p
+# plotly::ggplotly(p)
+```
+
+
+# Report Return Dates
+
+```{r}
+reports1 <- here("inst/reports/mega_seqrunsum/nogit/report_return_dates_2023-2024.csv") |>
+  readr::read_csv(col_types = readr::cols(.default = "c")) |>
+  rename(
+    ExternalSubjectID = "External ID",
+    URN_CUP = "URN of CUPs",
+    SubjectID = "SBJ ID",
+    Assay = "assay",
+    DateReported = "date of report return"
+  ) |>
+  mutate(
+    DateReported = as.Date(.data$DateReported, format = "%d/%m/%Y")
+  ) |>
+  left_join(
+    tibble::tribble(
+      ~SubjectID, ~ExternalSubjectID_portal,
+      "SBJ01670", "UR2501514",
+      "SBJ04381", "SID-00009-Lot00500",
+      "SBJ04411", "IMPARP F-B",
+      "SBJ04416", "SN-PMC-126",
+      "SBJ04430", "IMPARP C-H",
+      "SBJ04752", "905579",
+      "SBJ04774", "4138985",
+      "SBJ04778", "PPGL29",
+      "SBJ04782", "2260976",
+      "SBJ04783", "2136896",
+      "SBJ04784", "10070134",
+      "SBJ04787", "10063388",
+      "SBJ04788", "10033903",
+      "SBJ04789", "9645642",
+      "SBJ04790", "173728",
+      "SBJ04868", "PMEX159074",
+      "SBJ04878", "9080989",
+      "SBJ04882", "PMEX159439 / UR10063958",
+      "SBJ04885", "PMEX159637 / UR5130743",
+      "SBJ04893", "10083361 GL0196",
+      "SBJ04894", "859363 HA0004",
+      "SBJ04899", "PM9696198",
+      "SBJ04966", "PMEX160574 / 10072166",
+      "SBJ04968", "PMEX160569 / 4233320",
+      "SBJ04969", "PMEX160653 / 10037062",
+      "SBJ05035", "IMPARP-AUS M-C",
+      "SBJ05081", "PMEX161353 / UR 50601716",
+      "SBJ05082", "PM9401040 / UR 13066986",
+      "SBJ05083", "PMEX161346 / UR 11190942",
+      "SBJ05084", "PM10081348 / UR 0204405",
+      "SBJ05085", "PM10063184 / UR 0120835",
+      "SBJ05086", "PMEX161344 / UR 2643844",
+      "SBJ05087", "PMEX161505 / UR 8770669",
+      "SBJ05572", "SN-PMC-169",
+      "SBJ05692", "IMPARP-AUS A-J"
+    ),
+    by = "SubjectID"
+  )
+reports <- reports1 |>
+  mutate(
+    ExternalSubjectID = ifelse(is.na(ExternalSubjectID_portal), ExternalSubjectID, ExternalSubjectID_portal),
+    in_lims = ExternalSubjectID %in% lims$ExternalSubjectID,
+    ExternalSubjectID = ifelse(
+      !in_lims,
+      sub("^PM|^UR", "", .data$ExternalSubjectID),
+      .data$ExternalSubjectID
+    ),
+    in_lims = ExternalSubjectID %in% lims$ExternalSubjectID,
+    ExternalSubjectID = ifelse(
+      !in_lims,
+      sub("^GL.*_UR(.*)", "\\1", .data$ExternalSubjectID),
+      .data$ExternalSubjectID
+    ),
+    in_lims = ExternalSubjectID %in% lims$ExternalSubjectID
+  ) |>
+  select(ExternalSubjectID, URN_CUP, SubjectID, Assay, DateReported, libid)
+rep_cttso <- reports |>
+  filter(Assay == "ctTSO")
+rep_cttso_done <- rep_cttso |>
+  filter(!is.na(libid))
+rep_cttso_nolibid <- rep_cttso |>
+  filter(is.na(libid))
+lims_cttso <- lims |>
+  filter(SubjectID %in% rep_cttso_nolibid$SubjectID) |>
+  filter(Type %in% c("ctDNA"), Assay %in% c("ctTSO"))
+rep_cttso_all <- rep_cttso_nolibid |>
+  left_join(lims_cttso, by = c("SubjectID", "ExternalSubjectID", "Assay")) |>
+  mutate(libid = LibraryID) |>
+  select(ExternalSubjectID, URN_CUP, SubjectID, Assay, DateReported, libid) |>
+  bind_rows(rep_cttso_done)
+
+rep_wgts <- reports |>
+  filter(Assay != "ctTSO")
+rep_wgts_done <- rep_wgts |>
+  filter(!is.na(libid))
+rep_wgts_nolibid <- rep_wgts |>
+  filter(is.na(libid))
+lims_wgts <- lims |>
+  filter(SubjectID %in% rep_wgts_nolibid$SubjectID) |>
+  filter(Type == "WGS", !Assay %in% "ctTSO", Phenotype == "tumor")
+rep_wgts_all <- rep_wgts_nolibid |>
+  left_join(lims_wgts |> select(SubjectID, LibraryID), by = c("SubjectID")) |>
+  mutate(libid = LibraryID) |>
+  select(ExternalSubjectID, URN_CUP, SubjectID, Assay, DateReported, libid) |>
+  bind_rows(rep_wgts_done)
+rep_all <- bind_rows(rep_wgts_all, rep_cttso_all) |>
+  rename(LibraryID = "libid") |>
+  select(SubjectID, LibraryID, Assay, DateReported)
+# rep_all |>
+#   filter(!LibraryID %in% bcl$LibraryID)
+```
+
+```{r}
+# bcl |>
+#   filter(LibraryID %in% rep_all$LibraryID)
+# c("L2400522" "L2400397" "L2400346")
+bcl_topups <- bcl |>
+  filter(LibraryID %in% rep_all$LibraryID) |>
+  filter(!is.na(topup_or_rerun))
+```
+
+---
+
+## Umccrise
+
+```{r}
+#| fig-height: 5
+um <- wf_name("umccrise")
+# filter(LibraryID_tumor %in% rep_all$LibraryID) |>
+# select(portal_run_id, start, end, durationMin, year, SubjectID, LibraryID_tumor)
+# all reported tumor libs have umccrise runs
+# rep_all |>
+#   filter(Assay == "WGTS") |>
+#   filter(!LibraryID %in% um$LibraryID_tumor)
+
+# some libs have multiple umccrise runs
+um_notok <- um |>
+  filter(LibraryID_tumor %in% rep_all$LibraryID) |>
+  group_by(LibraryID_tumor) |>
+  filter(n() > 1) |>
+  ungroup() |>
+  arrange(LibraryID_tumor) |>
+  select(portal_run_id, start, end, year, SubjectID, LibraryID_tumor)
+um_ok <- um |>
+  filter(LibraryID_tumor %in% rep_all$LibraryID) |>
+  group_by(LibraryID_tumor) |>
+  filter(n() == 1) |>
+  ungroup() |>
+  select(portal_run_id, start, end, year, SubjectID, LibraryID_tumor)
+um_notok_fixed <- tibble::tribble(
+  ~LibraryID_tumor, ~portal_run_id,
+  "L2301133", "202309234afd5c1b",
+  "L2301146", "20230929e4ba1e4c",
+  "L2301151", "2023092377ecefc3",
+  "L2301198", "20230929bcb6bec3",
+  "L2301265", "20231021ae547543",
+  "L2301358", "202311111a93c4ad",
+  "L2400346", "202403273f3c403e",
+  "L2400397", "20240415777c0407",
+  "L2400522", "20240519e7f8df41"
+) |>
+  left_join(um_notok, by = c("portal_run_id", "LibraryID_tumor")) |>
+  select(portal_run_id, start, end, year, SubjectID, LibraryID_tumor)
+um_rep <- bind_rows(
+  um_notok_fixed,
+  um_ok
+) |>
+  rename(LibraryID = "LibraryID_tumor") |>
+  left_join(rep_all, by = c("SubjectID", "LibraryID")) |>
+  mutate(
+    end_year = lubridate::year(end),
+    end_month = lubridate::month(end),
+    end_day = lubridate::day(end),
+    AnalysisEnd = as.character(glue::glue("{end_year}-{end_month}-{end_day}")),
+    AnalysisEnd = lubridate::ymd(AnalysisEnd),
+    TotalDays = as.integer(DateReported - AnalysisEnd)
+  )
+p <- um_rep |>
+  ggplot(aes(x = DateReported, y = TotalDays)) +
+  geom_jitter(width = 0.8, alpha = 0.5) +
+  ggtitle(glue("{nrow(um_rep)} libraries"))
+p
+# plotly::ggplotly(p)
+summary(um_rep$TotalDays)
+```
+
+## ctTSO
+
+```{r}
+#| fig-height: 5
+tso <- wf_name("tso_ctdna_tumor_only")
+# all reported tumor libs have tso runs
+# rep_all |>
+#   filter(Assay == "ctTSO") |>
+#   filter(!LibraryID %in% tso$LibraryID)
+tso_rep <- tso |>
+  filter(LibraryID %in% rep_all$LibraryID) |>
+  select(portal_run_id, start, end, year, SubjectID, LibraryID) |>
+  left_join(rep_all, by = c("SubjectID", "LibraryID")) |>
+  mutate(
+    end_year = lubridate::year(end),
+    end_month = lubridate::month(end),
+    end_day = lubridate::day(end),
+    AnalysisEnd = as.character(glue::glue("{end_year}-{end_month}-{end_day}")),
+    AnalysisEnd = lubridate::ymd(AnalysisEnd),
+    TotalDays = as.integer(DateReported - AnalysisEnd)
+  )
+p <- tso_rep |>
+  ggplot(aes(x = DateReported, y = TotalDays)) +
+  geom_jitter(width = 0.8, alpha = 0.5) +
+  ggtitle(glue("{nrow(tso_rep)} libraries"))
+p
+# plotly::ggplotly(p)
+summary(tso_rep$TotalDays)
+```
+

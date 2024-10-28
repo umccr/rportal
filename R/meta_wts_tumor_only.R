@@ -28,8 +28,8 @@ meta_wts_tumor_only <- function(pmeta, status = "Succeeded") {
     meta_io_fromjson() |>
     dplyr::mutate(
       # input
-      rglb = purrr::map_chr(.data$input, \(x) unique(x[["fastq_list_rows"]][["rglb"]])),
-      rgsm = purrr::map_chr(.data$input, \(x) unique(x[["fastq_list_rows"]][["rgsm"]])),
+      rglb = purrr::map_chr(.data$input, \(x) unique(x[["fastq_list_rows"]][["rglb"]]) %||% NA),
+      rgsm = purrr::map_chr(.data$input, \(x) unique(x[["fastq_list_rows"]][["rgsm"]]) %||% NA),
       lane = purrr::map_chr(.data$input, \(x) paste(x[["fastq_list_rows"]][["lane"]], collapse = ",")),
       lane = as.character(.data$lane),
       # output
@@ -37,11 +37,20 @@ meta_wts_tumor_only <- function(pmeta, status = "Succeeded") {
       gds_outdir_multiqc = purrr::map_chr(.data$output, list("multiqc_output_directory", "location"), .default = NA),
       gds_outdir_arriba = purrr::map_chr(.data$output, list("arriba_output_directory", "location"), .default = NA),
       gds_outdir_qualimap = purrr::map_chr(.data$output, list("qualimap_output_directory", "location"), .default = NA),
-      SubjectID = sub("umccr__.*__wts_tumor_only__(SBJ.*)__L.*", "\\1", .data$wfr_name)
+      SubjectID = sub("umccr__.*__wts_tumor_only__(SBJ.*)__L.*", "\\1", .data$wfr_name),
+      SubjectID = ifelse(
+        !grepl("external_apgi", .data$wfr_name),
+        .data$SubjectID,
+        sub("umccr__external_apgi__wts_tumor_only__(.*)", "\\1", .data$wfr_name)
+      ),
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(.data$end, .data$start, units = "mins")))
     )
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
+      "year", "durationMin",
       "SubjectID",
       LibraryID = "rglb",
       SampleID = "rgsm",

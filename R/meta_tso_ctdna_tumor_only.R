@@ -35,11 +35,15 @@ meta_tso_ctdna_tumor_only <- function(pmeta, status = c("Succeeded")) {
       libid1 = sub(".*_(L.*)", "\\1", .data$sample_id),
       rerun = grepl("rerun", .data$libid1),
       subjectid = sub("umccr__automated__tso_ctdna_tumor_only__(SBJ.*)__L.*", "\\1", .data$wfr_name),
-      libid = sub("umccr__automated__tso_ctdna_tumor_only__SBJ.*__(L.*)__.*", "\\1", .data$wfr_name) # equal to libid1 wo _rerun
+      libid = sub("umccr__automated__tso_ctdna_tumor_only__SBJ.*__(L.*)__.*", "\\1", .data$wfr_name), # equal to libid1 wo _rerun
+      # other
+      year = as.character(lubridate::year(.data$start)),
+      durationMin = round(as.numeric(difftime(.data$end, .data$start, units = "mins")))
     )
   d |>
     dplyr::select(
       dplyr::all_of(meta_main_cols()),
+      "year", "durationMin",
       SubjectID = "subjectid",
       LibraryID = "libid",
       SampleID = "sample_name2",
