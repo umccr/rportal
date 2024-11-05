@@ -9,7 +9,7 @@ env:
   recipe_path: conda/recipe
   env_yaml_path: conda/env/yaml
   env_lock_path: conda/env/lock
-  VERSION: '0.1.3' # versioned by bump2version
+  VERSION: '0.1.4' # versioned by bump2version
 
 jobs:
   condarise:
