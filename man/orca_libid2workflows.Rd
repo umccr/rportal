@@ -32,8 +32,8 @@ Given a libraryId gets workflow details.
 \examples{
 \dontrun{
 token <- orca_jwt() |> jwt_validate()
-libid <- "L2401414"
-wf_name <- "cttsov2"
+libid <- "L2401591"
+wf_name <- NULL
 d <- orca_libid2workflows(libid = libid, token = token, wf_name = wf_name)
 }
 }
