@@ -1,7 +1,6 @@
 #' Datashare umccrise S3 Results
 #'
-#' @param sid SubjectID.
-#' @param lid LibraryID of WGS tumor.
+#' @param libid LibraryID of WGS tumor.
 #'
 #' @return Tibble with presigned URLs.
 #' @examples
@@ -12,7 +11,7 @@
 #' }
 #' @export
 datashare_um_s3 <- function(libid, token) {
-  umccrise_pld <- function(libid, wf) {
+  umccrise_pld <- function(libid) {
     # get workflows run for libid
     wf <- orca_libid2workflows(
       libid = libid, token = token, wf_name = NULL, page_size = 20, stage = "prod"
@@ -342,7 +341,6 @@ datashare_wts <- function(sid, lid, wfrn_prefix = "umccr__automated__wts_tumor_o
     "ORDER BY \"start\" DESC;"
   )
   d_wts_raw <- portaldb_query_workflow(query_wts)
-
   n_wts_runs <- nrow(d_wts_raw)
   if (n_wts_runs == 0) {
     cli::cli_abort("No WTS results found for {sid_lid}")
@@ -374,4 +372,79 @@ datashare_wts <- function(sid, lid, wfrn_prefix = "umccr__automated__wts_tumor_o
     ) |>
     dplyr::relocate("sbjid_libid")
   d_wts_urls
+}
+
+#' Datashare WTS S3 Results
+#'
+#' @param libid LibraryID of WTS tumor.
+#'
+#' @return Tibble with presigned URLs.
+#' @examples
+#' \dontrun{
+#' libid <- "L2401585"
+#' token <- orca_jwt() |> jwt_validate()
+#' datashare_wts_s3(libid, token)
+#' }
+#' @export
+datashare_wts_s3 <- function(libid, token) {
+  wts_pld <- function(libid) {
+    # get workflows run for libid
+    wf <- orca_libid2workflows(
+      libid = libid, token = token, wf_name = NULL, page_size = 20, stage = "prod"
+    )
+    wf_raw <- wf |>
+      dplyr::filter(wf_name == "wts", currentStateStatus == "SUCCEEDED")
+    n_runs <- nrow(wf_raw)
+    if (n_runs == 0) {
+      cli::cli_abort("No WTS results found for {libid}")
+    } else if (n_runs > 1) {
+      wf_raw <- wf_raw |> dplyr::slice_head(n = 1)
+      msg <- glue(
+        "There are {n_runs} > 1 WTS workflows run for ",
+        "{libid};\n",
+        "We use the latest run with portal_run_id=\"{wf_raw$portalRunId}\" ",
+        "with a timestamp of ",
+        "{wf_raw$currentStateTimestamp}."
+      )
+      cli::cli_alert_info(msg)
+    }
+    # now use wfrid to get the payload with wts io
+    p <- wf_raw$orcabusId |>
+      orca_wfrid2payload(token = token) |>
+      pld_wts()
+  }
+  wts_files <- dplyr::tribble(
+    ~regex, ~fun,
+    "\\.bam$", "BAM_WTS_tumor",
+    "\\.bam\\.bai$", "BAMi_WTS_tumor",
+    "\\.bam\\.md5sum$", "BAMmd5sum_WTS_tumor",
+    "fusion_candidates\\.final$", "TSV_WTS_FusionCandidatesDragen",
+    "quant\\.genes\\.sf$", "TSV_WTS_QuantificationGenes",
+    "quant\\.sf", "TSV_WTS_Quantification",
+  )
+  wts_arriba_files <- dplyr::tribble(
+    ~regex, ~fun,
+    "fusions\\.pdf$", "PDF_WTS_FusionsArriba",
+    "fusions\\.tsv$", "TSV_WTS_FusionsArriba",
+  )
+  p <- wts_pld(libid)
+  expiry <- 604800 # 7days * 24hrs * 60min * 60sec
+  d_wts_urls1 <- p[["output_dragenTranscriptomeOutputUri"]] |>
+    dracarys::s3_list_files_filter_relevant(
+      presign = TRUE, regexes = wts_files, max_objects = 500, expiry_sec = expiry
+    )
+  d_wts_urls2 <- p[["output_arribaOutputUri"]] |>
+    dracarys::s3_list_files_filter_relevant(
+      presign = TRUE, regexes = wts_arriba_files, max_objects = 500, expiry_sec = expiry
+    )
+  urls_all <- dplyr::bind_rows(d_wts_urls1, d_wts_urls2) |>
+    dplyr::arrange(.data$type) |>
+    dplyr::mutate(
+      libid = libid,
+      size = trimws(as.character(.data$size)),
+      filesystem = "s3"
+    ) |>
+    dplyr::relocate("libid") |>
+    dplyr::relocate("filesystem", .after = "lastmodified")
+  return(urls_all)
 }

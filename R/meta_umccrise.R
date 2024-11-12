@@ -105,14 +105,9 @@ meta_umccrise <- function(pmeta, status = "Succeeded") {
 #' @return A tidy tibble.
 #' @export
 pld_umccrise <- function(pld) {
-  assertthat::assert_that(
-    all(c("orcabusId", "payloadRefId", "version", "data") %in% names(pld))
-  )
+  payload_okay(pld)
   pdata <- pld[["data"]]
   id <- pld[["orcabusId"]]
-  assertthat::assert_that(
-    all(c("tags", "inputs", "outputs", "engineParameters") %in% names(pdata))
-  )
   tags <- pdata[["tags"]] |>
     tibble::as_tibble_row() |>
     dplyr::mutate(orcabusId = id)

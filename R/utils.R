@@ -48,3 +48,12 @@ envvar_defined <- function(vars) {
   msg <- glue::glue("Following required env variables not defined: {x}")
   assertthat::assert_that(nrow(env) == 0, msg = msg)
 }
+
+payload_okay <- function(pld) {
+  assertthat::assert_that(
+    all(c("orcabusId", "payloadRefId", "version", "data") %in% names(pld))
+  )
+  assertthat::assert_that(
+    all(c("tags", "inputs", "outputs", "engineParameters") %in% names(pld[["data"]]))
+  )
+}
