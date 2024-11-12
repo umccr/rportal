@@ -61,3 +61,37 @@ meta_wts_tumor_only <- function(pmeta, status = "Succeeded") {
       "gds_outdir_qualimap"
     )
 }
+
+#' Payload for WTS workflow
+#'
+#' @param pld List with WTS workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_wts <- function(pld) {
+  payload_okay(pld)
+  id <- pld[["orcabusId"]]
+  pdata <- pld[["data"]]
+  tags <- pdata[["tags"]] |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id)
+  inputs <- pdata[["inputs"]] |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  d <- tags |>
+    dplyr::left_join(inputs, by = "orcabusId") |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId")
+  return(d)
+}
