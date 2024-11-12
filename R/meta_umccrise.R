@@ -97,3 +97,41 @@ meta_umccrise <- function(pmeta, status = "Succeeded") {
       "gds_infile_genomes_tar"
     )
 }
+
+#' Payload for umccrise workflow
+#'
+#' @param pld List with umccrise workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_umccrise <- function(pld) {
+  assertthat::assert_that(
+    all(c("orcabusId", "payloadRefId", "version", "data") %in% names(pld))
+  )
+  pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  assertthat::assert_that(
+    all(c("tags", "inputs", "outputs", "engineParameters") %in% names(pdata))
+  )
+  tags <- pdata[["tags"]] |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id)
+  inputs <- pdata[["inputs"]] |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+
+  d <- tags |>
+    dplyr::left_join(inputs, by = "orcabusId") |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId")
+  return(d)
+}
