@@ -116,19 +116,22 @@ pld_umccrise <- function(pld) {
   tags <- pdata[["tags"]] |>
     tibble::as_tibble_row() |>
     dplyr::mutate(orcabusId = id)
+  # remove trailing slashes from S3 directories
   inputs <- pdata[["inputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
     tibble::as_tibble_row() |>
     rlang::set_names(\(x) glue("input_{x}")) |>
     dplyr::mutate(orcabusId = id)
   outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
     tibble::as_tibble_row() |>
     rlang::set_names(\(x) glue("output_{x}")) |>
     dplyr::mutate(orcabusId = id)
   engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
     tibble::as_tibble_row() |>
     rlang::set_names(\(x) glue("engparam_{x}")) |>
     dplyr::mutate(orcabusId = id)
-
   d <- tags |>
     dplyr::left_join(inputs, by = "orcabusId") |>
     dplyr::left_join(outputs, by = "orcabusId") |>
