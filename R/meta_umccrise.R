@@ -108,6 +108,11 @@ pld_umccrise <- function(pld) {
   payload_okay(pld)
   pdata <- pld[["data"]]
   id <- pld[["orcabusId"]]
+  # collapse FastqListRowIds into single string
+  pdata[["tags"]][["tumorFastqListRowIds"]] <- pdata[["tags"]][["tumorFastqListRowIds"]] |>
+    paste(collapse = ", ")
+  pdata[["tags"]][["normalFastqListRowIds"]] <- pdata[["tags"]][["normalFastqListRowIds"]] |>
+    paste(collapse = ", ")
   tags <- pdata[["tags"]] |>
     tibble::as_tibble_row() |>
     dplyr::mutate(orcabusId = id)
