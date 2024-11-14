@@ -38,6 +38,7 @@ Imports:
     purrr,
     RAthena,
     rlang,
+    stringr,
     tibble,
     tidyr,
 Suggests:

@@ -36,6 +36,7 @@ requirements:
     - r-rathena
     - r-readr
     - r-rlang
+    - r-stringr
     - r-tibble
     - r-tidyr
 
@@ -60,6 +61,7 @@ requirements:
     - r-rathena
     - r-readr
     - r-rlang
+    - r-stringr
     - r-tibble
     - r-tidyr
 
