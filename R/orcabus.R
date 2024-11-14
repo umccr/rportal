@@ -84,6 +84,7 @@ orca_wfrid2state <- function(wfrid, token, stage = "prod") {
 #' token <- orca_jwt() |> jwt_validate()
 #' wfrid <- "wfr.01JCARAVTXKG5581SRA1HKBTD3"
 #' wfrid <- "wfr.01JCA5DZFD0T4MFQX0HHEEFBCH" # wts
+#' wfrid <- "wfr.01JBX361HKV0V9WS96RAFG135T" # cttsov2
 #' p <- orca_wfrid2payload(wfrid = wfrid, token = token)
 #' }
 #'
@@ -139,6 +140,7 @@ orca_prid2wfpayload <- function(prid, token, stage = "prod") {
 #' libid <- "L2401591" # wgs
 #' libid <- "L2401074" # wts # nothing
 #' libid <- "L2401577" # wts
+#' libid <- "L2401558" # cttsov2
 #' wf_name <- NULL
 #' d <- orca_libid2workflows(libid = libid, token = token, wf_name = wf_name, page_size = 20)
 #' }

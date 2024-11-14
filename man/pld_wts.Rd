@@ -2,16 +2,16 @@
 % Please edit documentation in R/meta_wts_tumor_only.R
 \name{pld_wts}
 \alias{pld_wts}
-\title{Payload for WTS workflow}
+\title{Payload Tidy wts}
 \usage{
 pld_wts(pld)
 }
 \arguments{
-\item{pld}{List with WTS workflow parameters.}
+\item{pld}{List with wts workflow parameters.}
 }
 \value{
 A tidy tibble.
 }
 \description{
-Payload for WTS workflow
+Payload Tidy wts
 }
