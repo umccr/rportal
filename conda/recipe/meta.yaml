@@ -1,6 +1,6 @@
 package:
   name: r-rportal
-  version: 0.1.4 # bump2version
+  version: 0.1.5 # bump2version
 
 source:
   path: ../..
