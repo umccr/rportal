@@ -1,23 +1,27 @@
 #' Datashare umccrise S3 Results
 #'
 #' @param libid LibraryID of WGS tumor.
+#' @param token JWT.
+#' @param wf_page_size Number of results to return when listing workflows this
+#' libid is involved in.
 #'
 #' @return Tibble with presigned URLs.
 #' @examples
 #' \dontrun{
 #' libid <- "L2401591"
+#' libid <- "L2401596"
 #' token <- orca_jwt() |> jwt_validate()
 #' datashare_um_s3(libid, token)
 #' }
 #' @export
-datashare_um_s3 <- function(libid, token) {
+datashare_um_s3 <- function(libid, token, wf_page_size = 50) {
   umccrise_pld <- function(libid) {
     # get workflows run for libid
     wf <- orca_libid2workflows(
-      libid = libid, token = token, wf_name = NULL, page_size = 20, stage = "prod"
+      libid = libid, token = token, wf_name = NULL, page_size = wf_page_size, stage = "prod"
     )
     wf_um_raw <- wf |>
-      dplyr::filter(wf_name == "umccrise", currentStateStatus == "SUCCEEDED")
+      dplyr::filter(.data$wf_name == "umccrise", .data$currentStateStatus == "SUCCEEDED")
     n_um_runs <- nrow(wf_um_raw)
     if (n_um_runs == 0) {
       cli::cli_abort("No umccrise results found for {libid}")
@@ -377,6 +381,9 @@ datashare_wts <- function(sid, lid, wfrn_prefix = "umccr__automated__wts_tumor_o
 #' Datashare WTS S3 Results
 #'
 #' @param libid LibraryID of WTS tumor.
+#' @param wf_page_size Number of results to return when listing workflows this
+#' libid is involved in.
+#' @param token JWT.
 #'
 #' @return Tibble with presigned URLs.
 #' @examples
@@ -386,14 +393,14 @@ datashare_wts <- function(sid, lid, wfrn_prefix = "umccr__automated__wts_tumor_o
 #' datashare_wts_s3(libid, token)
 #' }
 #' @export
-datashare_wts_s3 <- function(libid, token) {
+datashare_wts_s3 <- function(libid, token, wf_page_size = 50) {
   wts_pld <- function(libid) {
     # get workflows run for libid
     wf <- orca_libid2workflows(
-      libid = libid, token = token, wf_name = NULL, page_size = 20, stage = "prod"
+      libid = libid, token = token, wf_name = NULL, page_size = wf_page_size, stage = "prod"
     )
     wf_raw <- wf |>
-      dplyr::filter(wf_name == "wts", currentStateStatus == "SUCCEEDED")
+      dplyr::filter(.data$wf_name == "wts", .data$currentStateStatus == "SUCCEEDED")
     n_runs <- nrow(wf_raw)
     if (n_runs == 0) {
       cli::cli_abort("No WTS results found for {libid}")

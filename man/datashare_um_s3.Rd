@@ -4,10 +4,15 @@
 \alias{datashare_um_s3}
 \title{Datashare umccrise S3 Results}
 \usage{
-datashare_um_s3(libid, token)
+datashare_um_s3(libid, token, wf_page_size = 50)
 }
 \arguments{
 \item{libid}{LibraryID of WGS tumor.}
+
+\item{token}{JWT.}
+
+\item{wf_page_size}{Number of results to return when listing workflows this
+libid is involved in.}
 }
 \value{
 Tibble with presigned URLs.
@@ -18,6 +23,7 @@ Datashare umccrise S3 Results
 \examples{
 \dontrun{
 libid <- "L2401591"
+libid <- "L2401596"
 token <- orca_jwt() |> jwt_validate()
 datashare_um_s3(libid, token)
 }

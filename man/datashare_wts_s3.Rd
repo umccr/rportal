@@ -4,10 +4,15 @@
 \alias{datashare_wts_s3}
 \title{Datashare WTS S3 Results}
 \usage{
-datashare_wts_s3(libid, token)
+datashare_wts_s3(libid, token, wf_page_size = 50)
 }
 \arguments{
 \item{libid}{LibraryID of WTS tumor.}
+
+\item{token}{JWT.}
+
+\item{wf_page_size}{Number of results to return when listing workflows this
+libid is involved in.}
 }
 \value{
 Tibble with presigned URLs.

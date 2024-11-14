@@ -70,8 +70,11 @@ meta_wts_tumor_only <- function(pmeta, status = "Succeeded") {
 #' @export
 pld_wts <- function(pld) {
   payload_okay(pld)
-  id <- pld[["orcabusId"]]
   pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  # collapse FastqListRowIds into single string
+  pdata[["tags"]][["tumorFastqListRowIds"]] <- pdata[["tags"]][["tumorFastqListRowIds"]] |>
+    paste(collapse = ", ")
   tags <- pdata[["tags"]] |>
     tibble::as_tibble_row() |>
     dplyr::mutate(orcabusId = id)
