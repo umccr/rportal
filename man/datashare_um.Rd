@@ -9,7 +9,7 @@ datashare_um(sid, lid, token_ica = Sys.getenv("ICA_ACCESS_TOKEN"))
 \arguments{
 \item{sid}{SubjectID.}
 
-\item{lid}{LibraryID of WTS tumor.}
+\item{lid}{LibraryID of WGS tumor.}
 
 \item{token_ica}{ICA_ACCESS_TOKEN.}
 }

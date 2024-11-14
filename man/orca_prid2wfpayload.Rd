@@ -23,15 +23,8 @@ Given an OrcaBus portalRunId, provides the workflow payload.
 \dontrun{
 token <- orca_jwt() |> jwt_validate()
 # e.g. for a cttsov2 workflow
-prid <- "20240930a40b3974"
+prid <- "20241110c01a1c76"
 p <- orca_prid2wfpayload(prid = prid, token = token)
-
-sampleid <- resp[["data"]][["inputs"]][["sampleId"]]
-path <- resp[["data"]][["outputs"]][["resultsDir"]] |> dirname()
-list(
-  path = path,
-  prefix = sampleid
-)
 }
 
 }
