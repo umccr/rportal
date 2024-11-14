@@ -65,7 +65,7 @@ datashare_um_s3 <- function(libid, token, wf_page_size = 50) {
     "tumor\\.bam\\.md5sum$", "BAMmd5sum_tumor",
     "normal\\.bam$", "BAM_normal",
     "normal\\.bam\\.bai$", "BAMi_normal",
-    "normal\\.bam\\.md5sum$", "BAMmd5sum_tumor",
+    "normal\\.bam\\.md5sum$", "BAMmd5sum_normal",
   )
   p <- umccrise_pld(libid)
   um_dragen_input_s3 <- p[["input_dragenSomaticOutputUri"]]
