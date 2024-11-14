@@ -98,7 +98,7 @@ meta_umccrise <- function(pmeta, status = "Succeeded") {
     )
 }
 
-#' Payload for umccrise workflow
+#' Payload Tidy umccrise
 #'
 #' @param pld List with umccrise workflow parameters.
 #'

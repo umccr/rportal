@@ -62,9 +62,9 @@ meta_wts_tumor_only <- function(pmeta, status = "Succeeded") {
     )
 }
 
-#' Payload for WTS workflow
+#' Payload Tidy wts
 #'
-#' @param pld List with WTS workflow parameters.
+#' @param pld List with wts workflow parameters.
 #'
 #' @return A tidy tibble.
 #' @export

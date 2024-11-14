@@ -2,7 +2,7 @@
 % Please edit documentation in R/meta_umccrise.R
 \name{pld_umccrise}
 \alias{pld_umccrise}
-\title{Payload for umccrise workflow}
+\title{Payload Tidy umccrise}
 \usage{
 pld_umccrise(pld)
 }
@@ -13,5 +13,5 @@ pld_umccrise(pld)
 A tidy tibble.
 }
 \description{
-Payload for umccrise workflow
+Payload Tidy umccrise
 }
