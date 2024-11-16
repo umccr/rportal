@@ -112,6 +112,7 @@ orca_wfrid2payload <- function(wfrid, token, stage = "prod") {
 #' token <- orca_jwt() |> jwt_validate()
 #' # e.g. for a cttsov2 workflow
 #' prid <- "20241110c01a1c76"
+#' prid <- "2024111638b77605" # sash
 #' p <- orca_prid2wfpayload(prid = prid, token = token)
 #' }
 #'
