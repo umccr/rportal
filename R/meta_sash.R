@@ -68,7 +68,6 @@ pld_sash <- function(pld) {
   payload_okay(pld)
   pdata <- pld[["data"]]
   id <- pld[["orcabusId"]]
-  # collapse FastqListRowIds into single string
   tags <- pdata[["tags"]] |>
     tibble::as_tibble_row() |>
     dplyr::mutate(orcabusId = id)
