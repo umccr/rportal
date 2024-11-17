@@ -16,7 +16,6 @@ LazyData: true
 Roxygen: list(markdown = TRUE,
               roclets = c("namespace", "rd", "roxytest::testthat_roclet"))
 RoxygenNote: 7.3.1
-VignetteBuilder: knitr
 Depends:
     R (>= 4.1)
 Remotes:
