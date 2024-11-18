@@ -78,7 +78,13 @@ pld_wts <- function(pld) {
   tags <- pdata[["tags"]] |>
     tibble::as_tibble_row() |>
     dplyr::mutate(orcabusId = id)
-  inputs <- pdata[["inputs"]] |>
+  # take care of fastqListRows lists
+  inputs <- pdata[["inputs"]]
+  inputs[["tumorFastqListRows"]] <- inputs[["tumorFastqListRows"]] |>
+    purrr::map(tibble::as_tibble_row) |>
+    dplyr::bind_rows() |>
+    list()
+  inputs <- inputs |>
     tibble::as_tibble_row() |>
     rlang::set_names(\(x) glue("input_{x}")) |>
     dplyr::mutate(orcabusId = id)
