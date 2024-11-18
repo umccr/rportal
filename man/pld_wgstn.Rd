@@ -2,7 +2,7 @@
 % Please edit documentation in R/meta_wgs_tumor_normal.R
 \name{pld_wgstn}
 \alias{pld_wgstn}
-\title{Payload Tidy wgs-tn}
+\title{Payload Tidy wgstn}
 \usage{
 pld_wgstn(pld)
 }
@@ -13,5 +13,5 @@ pld_wgstn(pld)
 A tidy tibble.
 }
 \description{
-Payload Tidy wgs-tn
+Payload Tidy wgstn
 }

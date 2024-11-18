@@ -93,7 +93,7 @@ meta_wgs_tumor_normal <- function(pmeta, status = "Succeeded") {
     )
 }
 
-#' Payload Tidy wgs-tn
+#' Payload Tidy wgstn
 #'
 #' @param pld List with wgs-tn workflow parameters.
 #'
