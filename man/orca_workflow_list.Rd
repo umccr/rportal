@@ -26,6 +26,6 @@ OrcaBus List Workflow Runs
 token <- orca_jwt() |> jwt_validate()
 wf_name <- NULL
 wf_name <- "umccrise"
-orca_workflow_list(wf_name = wf_name, token = token)
+orca_workflow_list(wf_name = wf_name, token = token, page_size = 50)
 }
 }
