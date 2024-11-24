@@ -81,13 +81,21 @@ pld_wgtsqc <- function(pld) {
     dplyr::mutate(orcabusId = id)
   # take care of fastqListRows lists
   inputs <- pdata[["inputs"]]
+  assertthat::assert_that(
+    all(purrr::map_int(inputs[["fastqListRow"]], length) == 1),
+    msg = "Input fastqListRow is supposed to have 1 value per element."
+  )
   inputs[["fastqListRow"]] <- inputs[["fastqListRow"]] |>
     tibble::as_tibble_row() |>
     list()
   inputs <- inputs |>
     tibble::as_tibble_row() |>
+    tidyr::unnest("fastqListRow") |>
     rlang::set_names(\(x) glue("input_{x}")) |>
-    dplyr::mutate(orcabusId = id)
+    dplyr::mutate(
+      orcabusId = id,
+      input_lane = as.character(.data$input_lane)
+    )
   outputs <- pdata[["outputs"]] |>
     purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
     tibble::as_tibble_row() |>

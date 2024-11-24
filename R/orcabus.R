@@ -192,6 +192,7 @@ orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, s
 #' @param token JWT.
 #' @param page_size Maximum number of rows to return.
 #' @param stage Environment where API is deployed (prod, stg or dev).
+#' @param status Run status.
 #'
 #' @examples
 #' \dontrun{
@@ -207,7 +208,7 @@ orca_workflow_list <- function(wf_name = NULL, status = "SUCCEEDED", token, page
   assertthat::assert_that(stage %in% orca_stages())
   wf_name_qstring <- ""
   if (!is.null(wf_name)) {
-    wf_name_qstring <- glue("&workflowRunName={wf_name}")
+    wf_name_qstring <- glue("&workflow__workflowName={wf_name}")
   }
   status_qstring <- ""
   if (!is.null(status)) {
@@ -216,6 +217,7 @@ orca_workflow_list <- function(wf_name = NULL, status = "SUCCEEDED", token, page
   ordering <- "-portal_run_id"
   ep <- glue("https://workflow.{stage}.umccr.org/api/v1/workflowrun/")
   url <- glue("{ep}?rowsPerPage={page_size}&ordering={ordering}{wf_name_qstring}{status_qstring}")
+  cli::cli_alert_info("Query {url}")
   x <- orca_query_url(url, token)
   res <- x[["results"]]
   d <- tibble::tibble(

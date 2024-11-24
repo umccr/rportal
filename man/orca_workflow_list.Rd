@@ -15,6 +15,8 @@ orca_workflow_list(
 \arguments{
 \item{wf_name}{Name of workflow. If NULL, returns all.}
 
+\item{status}{Run status.}
+
 \item{token}{JWT.}
 
 \item{page_size}{Maximum number of rows to return.}
