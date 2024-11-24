@@ -28,6 +28,8 @@ prid <- "20241116dfee1aef" # oa-wgts-dna
 prid <- "2024111514abc96a" # wgs-tn
 prid <- "20241115cbfdaeea" # wgs-qc-rna
 prid <- "202411154e2c74f3" # wgs-qc-dna
+prid <- "2024111507e8ca78" # bclconvert
+prid <- "202411152feba98c" # bclconvert-interopqc
 p <- orca_prid2wfpayload(prid = prid, token = token)
 }
 

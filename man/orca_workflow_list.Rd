@@ -4,7 +4,13 @@
 \alias{orca_workflow_list}
 \title{OrcaBus List Workflow Runs}
 \usage{
-orca_workflow_list(wf_name = NULL, token, page_size = 10, stage = "prod")
+orca_workflow_list(
+  wf_name = NULL,
+  status = "SUCCEEDED",
+  token,
+  page_size = 10,
+  stage = "prod"
+)
 }
 \arguments{
 \item{wf_name}{Name of workflow. If NULL, returns all.}
