@@ -109,6 +109,7 @@ pld_wgtsqc <- function(pld) {
   d <- tags |>
     dplyr::left_join(inputs, by = "orcabusId") |>
     dplyr::left_join(outputs, by = "orcabusId") |>
-    dplyr::left_join(engpar, by = "orcabusId")
+    dplyr::left_join(engpar, by = "orcabusId") |>
+    dplyr::relocate("orcabusId")
   return(d)
 }
