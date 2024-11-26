@@ -82,3 +82,25 @@ meta_bcl_convert <- function(pmeta, status = "Succeeded") {
       "gds_indir_bcl"
     )
 }
+
+#' Payload Tidy bclconvert
+#'
+#' @param pld List with bclconvert workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_bclconvert <- function(pld) {
+  assertthat::assert_that(
+    all(c("orcabusId", "payloadRefId", "version", "data") %in% names(pld))
+  )
+  pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  pdata[["basespaceRunId"]] <- as.character(pdata[["basespaceRunId"]])
+  # base64enc::base64decode(pdata$samplesheetB64gz) |>
+  #   memDecompress("gzip", TRUE)
+  d <- pdata |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id) |>
+    dplyr::relocate("orcabusId")
+  return(d)
+}
