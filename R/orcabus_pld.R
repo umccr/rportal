@@ -177,6 +177,209 @@ pld_oawgtsdna <- function(pld) {
   return(d)
 }
 
+#' Payload Tidy oncoanalyser-wgts-dna-rna
+#'
+#' @param pld List with oncoanalyserwgtsdnarna workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_oawgtsdnarna <- function(pld) {
+  payload_okay(pld)
+  pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  tags <- pdata[["tags"]] |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id)
+  # remove trailing slashes from S3 directories
+  inputs <- pdata[["inputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  d <- tags |>
+    dplyr::left_join(inputs, by = "orcabusId") |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId") |>
+    dplyr::relocate("orcabusId")
+  return(d)
+}
+
+#' Payload Tidy oncoanalyser-wgts-rna
+#'
+#' @param pld List with oncoanalyserwgtsrna workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_oawgtsrna <- function(pld) {
+  payload_okay(pld)
+  pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  tags <- pdata[["tags"]] |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id)
+  # remove trailing slashes from S3 directories
+  # take care of fastqListRows lists
+  inputs <- pdata[["inputs"]]
+  inputs[["tumorRnaFastqListRows"]] <- inputs[["tumorRnaFastqListRows"]] |>
+    purrr::map(tibble::as_tibble_row) |>
+    dplyr::bind_rows() |>
+    list()
+  inputs <- inputs |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  d <- tags |>
+    dplyr::left_join(inputs, by = "orcabusId") |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId") |>
+    dplyr::relocate("orcabusId")
+  return(d)
+}
+
+#' Payload Tidy orca-compression
+#'
+#' @param pld List with orcacompression workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_oracompression <- function(pld) {
+  payload_okay(pld)
+  pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  tags <- pdata[["tags"]] |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id)
+  # remove trailing slashes from S3 directories
+  inputs <- pdata[["inputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  d <- tags |>
+    dplyr::left_join(inputs, by = "orcabusId") |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId") |>
+    dplyr::relocate("orcabusId")
+  return(d)
+}
+
+#' Payload Tidy pieriandx
+#'
+#' @param pld List with pieriandx workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_pieriandx <- function(pld) {
+  payload_okay(pld)
+  pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  tags <- pdata[["tags"]] |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id)
+  # just grab dataFiles + caseMetadata
+  inputs <- pdata[["inputs"]]
+  inputs_df <- inputs[["dataFiles"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  inputs_cm <- inputs[["caseMetadata"]] |>
+    purrr::list_flatten() |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  d <- tags |>
+    dplyr::left_join(inputs_cm, by = "orcabusId") |>
+    dplyr::left_join(inputs_df, by = "orcabusId") |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId") |>
+    dplyr::relocate("orcabusId")
+  return(d)
+}
+
+#' Payload Tidy rnasum
+#'
+#' @param pld List with rnasum workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_rnasum <- function(pld) {
+  payload_okay(pld)
+  id <- pld[["orcabusId"]]
+  pdata <- pld[["data"]]
+  pdata[["tags"]][["wgsTumorFastqListRowIds"]] <- pdata[["tags"]][["wgsTumorFastqListRowIds"]] |>
+    paste(collapse = ", ")
+  pdata[["tags"]][["wtsTumorFastqListRowIds"]] <- pdata[["tags"]][["wtsTumorFastqListRowIds"]] |>
+    paste(collapse = ", ")
+  pdata[["tags"]][["wgsNormalFastqListRowIds"]] <- pdata[["tags"]][["wgsNormalFastqListRowIds"]] |>
+    paste(collapse = ", ")
+  tags <- pdata[["tags"]] |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id)
+  # remove trailing slashes from S3 directories
+  inputs <- pdata[["inputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  d <- tags |>
+    dplyr::left_join(inputs, by = "orcabusId") |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId") |>
+    dplyr::relocate("orcabusId")
+  return(d)
+}
+
 #' Payload Tidy sash
 #'
 #' @param pld List with sash workflow parameters.
