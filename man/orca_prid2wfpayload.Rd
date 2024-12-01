@@ -21,15 +21,16 @@ Given an OrcaBus portalRunId, provides the workflow payload.
 }
 \examples{
 \dontrun{
-token <- orca_jwt() |> jwt_validate()
 prid <- "20241110c01a1c76" # cttso
 prid <- "2024111638b77605" # sash
 prid <- "20241116dfee1aef" # oa-wgts-dna
 prid <- "2024111514abc96a" # wgs-tn
 prid <- "20241115cbfdaeea" # wgs-qc-rna
 prid <- "202411154e2c74f3" # wgs-qc-dna
+prid <- "202411231acb8163" # wgs-qc-dna
 prid <- "2024111507e8ca78" # bclconvert
 prid <- "202411152feba98c" # bclconvert-interopqc
+token <- orca_jwt() |> jwt_validate()
 p <- orca_prid2wfpayload(prid = prid, token = token)
 }
 

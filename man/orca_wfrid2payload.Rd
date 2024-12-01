@@ -25,7 +25,15 @@ token <- orca_jwt() |> jwt_validate()
 wfrid <- "wfr.01JCARAVTXKG5581SRA1HKBTD3"
 wfrid <- "wfr.01JCA5DZFD0T4MFQX0HHEEFBCH" # wts
 wfrid <- "wfr.01JBX361HKV0V9WS96RAFG135T" # cttsov2
+wfrid <- "wfr.01JD20PQGQDAEAWD5S9E6M10J6" # cttsov2
 wfrid <- "wfr.01JD20PQGQTY8SNSEZTZ8XF5N9" # wgs-tn
+wfrid <- "wfr.01JE08ZV50519JTVH3Z4N8BQV2" # bsshfastqcopy
+wfrid <- "wfr.01JDK5068AEV2RDNMH970B5W71" # bclconvert-interop-qc
+wfrid <- "wfr.01JDE02YAQT441W1D26F0DXZ8J" # oncoanalyser-wgts-dna-rna
+wfrid <- "wfr.01JDCCGRN6D34XCNE8N2XMQ91Q" # oncoanalyser-wgts-rna
+wfrid <- "wfr.01JDBW5T3T1SDMCW5GN3SK10F8" # ora-compression
+wfrid <- "wfr.01JDCPRG7DGH1KA9X90Y4YBYZX" # pieriandx
+wfrid <- "wfr.01JDGB7G746GBXYPKNH7PRQ39S" # rnasum
 p <- orca_wfrid2payload(wfrid = wfrid, token = token)
 }
 

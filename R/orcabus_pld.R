@@ -20,6 +20,75 @@ pld_bclconvert <- function(pld) {
   return(d)
 }
 
+#' Payload Tidy bclconvertinteropqc
+#'
+#' @param pld List with bclconvertinteropqc workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_bclconvertinteropqc <- function(pld) {
+  payload_okay(pld)
+  pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  tags <- pdata[["tags"]] |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id)
+  inputs <- pdata[["inputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  d <- tags |>
+    dplyr::left_join(inputs, by = "orcabusId") |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId") |>
+    dplyr::relocate("orcabusId")
+  return(d)
+}
+
+#' Payload Tidy bsshfastqcopy
+#'
+#' @param pld List with bsshfastqcopy workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_bsshfastqcopy <- function(pld) {
+  assertthat::assert_that(
+    all(c("orcabusId", "payloadRefId", "version", "data") %in% names(pld))
+  )
+  pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  inputs <- pdata[["inputs"]] |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  d <- inputs |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId") |>
+    dplyr::relocate("orcabusId")
+  return(d)
+}
+
 #' Payload Tidy tso
 #'
 #' @param pld List with cttsov2 workflow parameters.

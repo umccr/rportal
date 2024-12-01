@@ -86,7 +86,15 @@ orca_wfrid2state <- function(wfrid, token, stage = "prod") {
 #' wfrid <- "wfr.01JCARAVTXKG5581SRA1HKBTD3"
 #' wfrid <- "wfr.01JCA5DZFD0T4MFQX0HHEEFBCH" # wts
 #' wfrid <- "wfr.01JBX361HKV0V9WS96RAFG135T" # cttsov2
+#' wfrid <- "wfr.01JD20PQGQDAEAWD5S9E6M10J6" # cttsov2
 #' wfrid <- "wfr.01JD20PQGQTY8SNSEZTZ8XF5N9" # wgs-tn
+#' wfrid <- "wfr.01JE08ZV50519JTVH3Z4N8BQV2" # bsshfastqcopy
+#' wfrid <- "wfr.01JDK5068AEV2RDNMH970B5W71" # bclconvert-interop-qc
+#' wfrid <- "wfr.01JDE02YAQT441W1D26F0DXZ8J" # oncoanalyser-wgts-dna-rna
+#' wfrid <- "wfr.01JDCCGRN6D34XCNE8N2XMQ91Q" # oncoanalyser-wgts-rna
+#' wfrid <- "wfr.01JDBW5T3T1SDMCW5GN3SK10F8" # ora-compression
+#' wfrid <- "wfr.01JDCPRG7DGH1KA9X90Y4YBYZX" # pieriandx
+#' wfrid <- "wfr.01JDGB7G746GBXYPKNH7PRQ39S" # rnasum
 #' p <- orca_wfrid2payload(wfrid = wfrid, token = token)
 #' }
 #'
@@ -113,15 +121,16 @@ orca_wfrid2payload <- function(wfrid, token, stage = "prod") {
 #' @return List of workflow payload.
 #' @examples
 #' \dontrun{
-#' token <- orca_jwt() |> jwt_validate()
 #' prid <- "20241110c01a1c76" # cttso
 #' prid <- "2024111638b77605" # sash
 #' prid <- "20241116dfee1aef" # oa-wgts-dna
 #' prid <- "2024111514abc96a" # wgs-tn
 #' prid <- "20241115cbfdaeea" # wgs-qc-rna
 #' prid <- "202411154e2c74f3" # wgs-qc-dna
+#' prid <- "202411231acb8163" # wgs-qc-dna
 #' prid <- "2024111507e8ca78" # bclconvert
 #' prid <- "202411152feba98c" # bclconvert-interopqc
+#' token <- orca_jwt() |> jwt_validate()
 #' p <- orca_prid2wfpayload(prid = prid, token = token)
 #' }
 #'
@@ -153,6 +162,7 @@ orca_prid2wfpayload <- function(prid, token, stage = "prod") {
 #' libid <- "L2401608" # wgs
 #' libid <- "L2401603" # wgs
 #' libid <- "L2401610" # oa
+#' libid <- "L2401445" # cttsov2
 #' wf_name <- NULL
 #' token <- orca_jwt() |> jwt_validate()
 #' d <- orca_libid2workflows(libid = libid, token = token, wf_name = wf_name, page_size = 20)
@@ -196,10 +206,10 @@ orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, s
 #'
 #' @examples
 #' \dontrun{
-#' token <- orca_jwt() |> jwt_validate()
 #' wf_name <- NULL
 #' wf_name <- "umccrise"
-#' orca_workflow_list(wf_name = wf_name, token = token, page_size = 50)
+#' token <- orca_jwt() |> jwt_validate()
+#' wfs <- orca_workflow_list(wf_name = wf_name, token = token, page_size = 500)
 #' }
 #' @return Tibble with results.
 #'
