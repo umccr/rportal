@@ -21,8 +21,9 @@ Given an OrcaBus portalRunId, provides the workflow run ID.
 }
 \examples{
 \dontrun{
-token <- orca_jwt() |> jwt_validate()
 prid <- "20241110c01a1c76"
+prid <- "202409303ed604f4"
+token <- orca_jwt() |> jwt_validate()
 wfrid <- orca_prid2wfrid(prid = prid, token = token)
 }
 

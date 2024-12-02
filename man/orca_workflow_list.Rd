@@ -4,10 +4,18 @@
 \alias{orca_workflow_list}
 \title{OrcaBus List Workflow Runs}
 \usage{
-orca_workflow_list(wf_name = NULL, token, page_size = 10, stage = "prod")
+orca_workflow_list(
+  wf_name = NULL,
+  status = "SUCCEEDED",
+  token,
+  page_size = 10,
+  stage = "prod"
+)
 }
 \arguments{
 \item{wf_name}{Name of workflow. If NULL, returns all.}
+
+\item{status}{Run status.}
 
 \item{token}{JWT.}
 
@@ -23,9 +31,9 @@ OrcaBus List Workflow Runs
 }
 \examples{
 \dontrun{
-token <- orca_jwt() |> jwt_validate()
 wf_name <- NULL
 wf_name <- "umccrise"
-orca_workflow_list(wf_name = wf_name, token = token)
+token <- orca_jwt() |> jwt_validate()
+wfs <- orca_workflow_list(wf_name = wf_name, token = token, page_size = 500)
 }
 }
