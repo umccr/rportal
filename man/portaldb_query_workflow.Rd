@@ -13,15 +13,15 @@ portaldb_query_workflow(query = NULL)
 Tibble with results from query.
 }
 \description{
-Queries the \code{data_portal_workflow} table with the given query.
+Queries the \code{workflow} table with the given query.
 Note this is simply a convenience function that prepends
-\verb{SELECT * FROM "data_portal"."data_portal"."data_portal_workflow" } to any
+\verb{SELECT * FROM "orcavault"."mart"."workflow" } to any
 \code{query} you provide.
 See examples.
 }
 \examples{
 \dontrun{
-prid <- shQuote("202403274bf3ad80")
+prid <- shQuote("202504181b2efa22")
 query <- glue("WHERE \"portal_run_id\" IN ({prid});")
 portaldb_query_workflow(query)
 }

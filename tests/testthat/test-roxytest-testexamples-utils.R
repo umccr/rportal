@@ -2,7 +2,7 @@
 
 # File R/utils.R: @testexamples
 
-test_that("Function envvar_defined() @ L38", {
+test_that("Function envvar_defined() @ L37", {
   
   envvar_defined("HOME")
   expect_error(envvar_defined("FOOBAR"))

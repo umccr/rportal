@@ -1,3 +1,16 @@
+#' PortalDB Connect
+#'
+#' Establish the connection parameters for querying the Athena UMCCR databases from the `orcahouse` or `data_portal` workgroup.
+#'
+#' @param workgroup UMCCR Athena workgroup for portal database.
+#' @return Connection to DBMS
+#'
+#' @examples
+#' \dontrun{
+#' con <- portaldb_connect(workgroup = "orcahouse")
+#' con <- portaldb_connect(workgroup = "data_portal")
+#' }
+#' @export
 portaldb_connect <- function(workgroup = "orcahouse") {
   # make sure you have logged into AWS
   c("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION") |>
@@ -22,6 +35,8 @@ portaldb_connect <- function(workgroup = "orcahouse") {
 #' `"orcavault"."mart"."table"` (see examples).
 #'
 #' @param query SQL query string.
+#' @param workgroup UMCCR Athena workgroup for portal database.
+
 #' @return Tibble with results from the provided query.
 #'
 #' @examples
@@ -58,6 +73,7 @@ portaldb_query <- function(query = NULL, workgroup = "orcahouse") {
 #'
 #' @param table Table from `mart` DB (def: "workflow").
 #' @param query SQL query string.
+#' @param workgroup UMCCR Athena workgroup for portal database.
 #' @return Tibble with results from query.
 #'
 #' @examples
@@ -163,10 +179,10 @@ portaldb_query_fastq <- function(query = NULL) {
 #' \dontrun{
 #' libids <- shQuote(paste(c("L2100192", "L2100191", "L2500469"), collapse = "|"))
 #' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
-#' res <- portaldb_query_fastq_history(query)
+#' res <- portaldb_query_fastqhistory(query)
 #' }
 #' @export
-portaldb_query_fastq_history <- function(query = NULL) {
+portaldb_query_fastqhistory <- function(query = NULL) {
   portaldb_query_table(query = query, table = "fastq_history")
 }
 
