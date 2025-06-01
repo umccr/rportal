@@ -1,6 +1,7 @@
 #' PortalDB Connect
 #'
-#' Establish the connection parameters for querying the Athena UMCCR databases from the `orcahouse` or `data_portal` workgroup.
+#' Establish the connection parameters for querying the Athena UMCCR databases
+#' from the `orcahouse` or `data_portal` workgroup.
 #'
 #' @param workgroup UMCCR Athena workgroup for portal database.
 #' @return Connection to DBMS
@@ -8,7 +9,7 @@
 #' @examples
 #' \dontrun{
 #' con <- portaldb_connect(workgroup = "orcahouse")
-#' con <- portaldb_connect(workgroup = "data_portal")
+#' RAthena::list_work_groups(con) |> str()
 #' }
 #' @export
 portaldb_connect <- function(workgroup = "orcahouse") {
@@ -27,31 +28,23 @@ portaldb_connect <- function(workgroup = "orcahouse") {
   return(con)
 }
 
-
 #' PortalDB Query
 #'
-#' Query the `mart` UMCCR database from the `orcahouse` workgroup.
-#' To access a specific table from the database, use
-#' `"orcavault"."mart"."table"` (see examples).
+#' Submit an Athena query.
 #'
 #' @param query SQL query string.
-#' @param workgroup UMCCR Athena workgroup for portal database.
-
 #' @return Tibble with results from the provided query.
 #'
 #' @examples
 #' \dontrun{
-#' q1 <- 'SELECT * FROM "orcavault"."mart"."lims" LIMIT 2;'
+#' mart_db <- '"orcavault"."mart"'
+#' q1 <- glue('SELECT * FROM {mart_db}."lims" LIMIT 2;')
 #' portaldb_query(query = q1)
-#' # example of old query from data_portal database
-#' q2 <- 'SELECT * FROM "data_portal"."data_portal"."data_portal_limsrow" LIMIT 2;'
-#' portaldb_query(query = q2, workgroup = "data_portal")
-#' # example of finding exact matches
+#' # find exact matches
 #' prids <- c("20240327d595afa9", "202403274bf3ad80", "202504181b2efa22")
 #' prids_quote <- paste(shQuote(prids), collapse = ", ")
-#' wf_table <- '"orcavault"."mart"."workflow"'
-#' q3 <- glue('SELECT * FROM {wf_table} WHERE "portal_run_id" IN ({prids_quote});')
-#' portaldb_query(q3)
+#' q2 <- glue('SELECT * FROM {mart_db}."workflow" WHERE "portal_run_id" IN ({prids_quote});')
+#' portaldb_query(q2)
 #' }
 #' @export
 portaldb_query <- function(query = NULL, workgroup = "orcahouse") {
@@ -64,33 +57,33 @@ portaldb_query <- function(query = NULL, workgroup = "orcahouse") {
   return(d)
 }
 
-#' PortalDB Query Table
+#' PortalDB Query Mart
 #'
-#' Query the given PortalDB table.
+#' Query the given PortalDB Mart table.
 #' Note this is simply a convenience function that prepends
 #' `SELECT * FROM "orcavault"."mart"."<table>" ` to any `query` you provide.
 #' See examples.
 #'
-#' @param table Table from `mart` DB (def: "workflow").
+#' @param table Table from `mart` DB.
 #' @param query SQL query string.
-#' @param workgroup UMCCR Athena workgroup for portal database.
+#' @param workgroup Athena workgroup for portal database.
 #' @return Tibble with results from query.
 #'
 #' @examples
 #' \dontrun{
 #' prid <- shQuote("202504181b2efa22")
 #' query <- glue("WHERE \"portal_run_id\" IN ({prid});")
-#' portaldb_query_table(query = query, table = "workflow")
+#' portaldb_query_mart_table(query = query, table = "workflow")
 #' }
 #' @export
-portaldb_query_table <- function(query = NULL, table = "workflow", workgroup = "orcabus") {
+portaldb_query_mart_table <- function(query = NULL, table = "workflow") {
   assertthat::assert_that(!is.null(query))
-  wf_table <- glue('"orcavault"."mart"."{table}"')
-  q1 <- glue("SELECT * FROM {wf_table} {query}")
+  tab <- glue('"orcavault"."mart"."{table}"')
+  q1 <- glue("SELECT * FROM {tab} {query}")
   portaldb_query(q1)
 }
 
-#' PortalDB Query Workflow Table
+#' PortalDB Query Mart Workflow
 #'
 #' Queries the `workflow` table with the given query.
 #' Note this is simply a convenience function that prepends
@@ -109,10 +102,10 @@ portaldb_query_table <- function(query = NULL, table = "workflow", workgroup = "
 #' }
 #' @export
 portaldb_query_workflow <- function(query = NULL) {
-  portaldb_query_table(query = query, table = "workflow")
+  portaldb_query_mart_table(query = query, table = "workflow")
 }
 
-#' PortalDB Query lims Table
+#' PortalDB Query Mart Lims
 #'
 #' Queries the `lims` table with the given query.
 #' Note this is simply a convenience function that prepends
@@ -139,7 +132,7 @@ portaldb_query_workflow <- function(query = NULL) {
 #' }
 #' @export
 portaldb_query_lims <- function(query = NULL) {
-  portaldb_query_table(query = query, table = "lims")
+  portaldb_query_mart_table(query = query, table = "lims")
 }
 
 #' PortalDB Query fastq Table
@@ -156,12 +149,12 @@ portaldb_query_lims <- function(query = NULL) {
 #' @examples
 #' \dontrun{
 #' libids <- shQuote(paste(c("L2100192", "L2100191", "L2500469"), collapse = "|"))
-#' query <- glue("WHERE REGEXP_LIKE(\"rglb\", {libids});")
+#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
 #' res <- portaldb_query_fastq(query)
 #' }
 #' @export
 portaldb_query_fastq <- function(query = NULL) {
-  portaldb_query_table(query = query, table = "fastq")
+  portaldb_query_mart_table(query = query, table = "fastq")
 }
 
 #' PortalDB Query fastq_history Table
@@ -183,7 +176,7 @@ portaldb_query_fastq <- function(query = NULL) {
 #' }
 #' @export
 portaldb_query_fastqhistory <- function(query = NULL) {
-  portaldb_query_table(query = query, table = "fastq_history")
+  portaldb_query_mart_table(query = query, table = "fastq_history")
 }
 
 #' PortalDB Query curation_lims Table
@@ -205,7 +198,7 @@ portaldb_query_fastqhistory <- function(query = NULL) {
 #' }
 #' @export
 portaldb_query_curationlims <- function(query = NULL) {
-  portaldb_query_table(query = query, table = "curation_lims")
+  portaldb_query_mart_table(query = query, table = "curation_lims")
 }
 
 #' PortalDB Query bam Table
@@ -227,5 +220,5 @@ portaldb_query_curationlims <- function(query = NULL) {
 #' }
 #' @export
 portaldb_query_bam <- function(query = NULL) {
-  portaldb_query_table(query = query, table = "bam")
+  portaldb_query_mart_table(query = query, table = "bam")
 }
