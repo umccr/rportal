@@ -10,8 +10,6 @@ portaldb_query_mart_table(query = NULL, table = "workflow")
 \item{query}{SQL query string.}
 
 \item{table}{Table from \code{mart} DB.}
-
-\item{workgroup}{Athena workgroup for portal database.}
 }
 \value{
 Tibble with results from query.

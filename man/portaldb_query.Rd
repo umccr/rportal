@@ -8,6 +8,8 @@ portaldb_query(query = NULL, workgroup = "orcahouse")
 }
 \arguments{
 \item{query}{SQL query string.}
+
+\item{workgroup}{Athena workgroup for portal database.}
 }
 \value{
 Tibble with results from the provided query.

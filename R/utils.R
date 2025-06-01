@@ -20,6 +20,7 @@ dummy1 <- function() {
   # Solves R CMD check: Namespaces in Imports field not imported from
   optparse::make_option
   fs::dir_create
+  lubridate::ymd
 }
 
 #' Are EnvVars Defined?

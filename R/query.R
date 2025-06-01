@@ -33,6 +33,7 @@ portaldb_connect <- function(workgroup = "orcahouse") {
 #' Submit an Athena query.
 #'
 #' @param query SQL query string.
+#' @param workgroup Athena workgroup for portal database.
 #' @return Tibble with results from the provided query.
 #'
 #' @examples
@@ -66,7 +67,6 @@ portaldb_query <- function(query = NULL, workgroup = "orcahouse") {
 #'
 #' @param table Table from `mart` DB.
 #' @param query SQL query string.
-#' @param workgroup Athena workgroup for portal database.
 #' @return Tibble with results from query.
 #'
 #' @examples
