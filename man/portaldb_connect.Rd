@@ -13,11 +13,12 @@ portaldb_connect(workgroup = "orcahouse")
 Connection to DBMS
 }
 \description{
-Establish the connection parameters for querying the Athena UMCCR databases from the \code{orcahouse} or \code{data_portal} workgroup.
+Establish the connection parameters for querying the Athena UMCCR databases
+from the \code{orcahouse} or \code{data_portal} workgroup.
 }
 \examples{
 \dontrun{
 con <- portaldb_connect(workgroup = "orcahouse")
-con <- portaldb_connect(workgroup = "data_portal")
+RAthena::list_work_groups(con) |> str()
 }
 }

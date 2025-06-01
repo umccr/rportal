@@ -22,7 +22,7 @@ See examples.
 \examples{
 \dontrun{
 libids <- shQuote(paste(c("L2100192", "L2100191", "L2500469"), collapse = "|"))
-query <- glue("WHERE REGEXP_LIKE(\"rglb\", {libids});")
+query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
 res <- portaldb_query_fastq(query)
 }
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/query.R
 \name{portaldb_query_workflow}
 \alias{portaldb_query_workflow}
-\title{PortalDB Query Workflow Table}
+\title{PortalDB Query Mart Workflow}
 \usage{
 portaldb_query_workflow(query = NULL)
 }
