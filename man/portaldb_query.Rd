@@ -4,28 +4,28 @@
 \alias{portaldb_query}
 \title{PortalDB Query}
 \usage{
-portaldb_query(query = NULL)
+portaldb_query(query = NULL, workgroup = "orcahouse")
 }
 \arguments{
 \item{query}{SQL query string.}
+
+\item{workgroup}{Athena workgroup for portal database.}
 }
 \value{
 Tibble with results from the provided query.
 }
 \description{
-Query the \code{data_portal} UMCCR database.
-To access a specific table from the database, use
-\verb{"data_portal"."data_portal"."table"} (see examples).
+Submit an Athena query.
 }
 \examples{
 \dontrun{
-q1 <- 'SELECT * FROM "data_portal"."data_portal"."data_portal_limsrow" LIMIT 2;'
-portaldb_query(q1)
-# example of finding exact matches
-prids <- c("20240327d595afa9", "202403274bf3ad80")
+mart_db <- '"orcavault"."mart"'
+q1 <- glue('SELECT * FROM {mart_db}."lims" LIMIT 2;')
+portaldb_query(query = q1)
+# find exact matches
+prids <- c("20240327d595afa9", "202403274bf3ad80", "202504181b2efa22")
 prids_quote <- paste(shQuote(prids), collapse = ", ")
-wf_table <- '"data_portal"."data_portal"."data_portal_workflow"'
-q2 <- glue('SELECT * FROM {wf_table} WHERE "portal_run_id" IN ({prids_quote});')
+q2 <- glue('SELECT * FROM {mart_db}."workflow" WHERE "portal_run_id" IN ({prids_quote});')
 portaldb_query(q2)
 }
 }
