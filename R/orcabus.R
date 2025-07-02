@@ -130,8 +130,11 @@ orca_wfrid2payload <- function(wfrid, token, stage = "prod") {
 #' prid <- "202411231acb8163" # wgs-qc-dna
 #' prid <- "2024111507e8ca78" # bclconvert
 #' prid <- "202411152feba98c" # bclconvert-interopqc
+#' prid <- "2025060866284123" # wgs-tn
+#' prid <- "20250630a115127b" # dragen-wgts-dna (germline only)
+#' prid <- "20250624d45e528c" # dragen-wgts-dna (?)
 #' token <- orca_jwt() |> jwt_validate()
-#' p <- orca_prid2wfpayload(prid = prid, token = token)
+#' p3 <- orca_prid2wfpayload(prid = prid, token = token)
 #' }
 #'
 #' @export
@@ -193,7 +196,14 @@ orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, s
     analysisRun = res |> purrr::map_chr("analysisRun", .default = NA)
   )
   d |>
-    dplyr::select("portalRunId", "wf_name", "wf_version", "orcabusId", "currentStateStatus", dplyr::everything())
+    dplyr::select(
+      "portalRunId",
+      "wf_name",
+      "wf_version",
+      "orcabusId",
+      "currentStateStatus",
+      dplyr::everything()
+    )
 }
 
 #' OrcaBus List Workflow Runs
@@ -214,7 +224,12 @@ orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, s
 #' @return Tibble with results.
 #'
 #' @export
-orca_workflow_list <- function(wf_name = NULL, status = "SUCCEEDED", token, page_size = 10, stage = "prod") {
+orca_workflow_list <- function(
+    wf_name = NULL,
+    status = "SUCCEEDED",
+    token,
+    page_size = 10,
+    stage = "prod") {
   assertthat::assert_that(stage %in% orca_stages())
   wf_name_qstring <- ""
   if (!is.null(wf_name)) {

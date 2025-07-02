@@ -21,8 +21,9 @@ See examples.
 }
 \examples{
 \dontrun{
-prid <- shQuote("202504181b2efa22")
+prid <- shQuote("2025060866284123")
 query <- glue("WHERE \"portal_run_id\" IN ({prid});")
-portaldb_query_workflow(query)
+query <- ";"
+wfs <- portaldb_query_workflow(query)
 }
 }
