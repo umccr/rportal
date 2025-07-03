@@ -640,7 +640,6 @@ pld_dragenwgtsdna <- function(pld) {
     dplyr::bind_rows() |>
     list()
   inputs[["fastqListRows"]] <- inputs[["sequenceData"]][["fastqListRows"]]
-  inputs[["sequenceData"]] <- NULL
   if (!is.null(inputs[["tumorSequenceData"]][["fastqListRows"]])) {
     inputs[["tumorSequenceData"]][["fastqListRows"]] <-
       inputs[["tumorSequenceData"]][["fastqListRows"]] |>
@@ -648,12 +647,13 @@ pld_dragenwgtsdna <- function(pld) {
       dplyr::bind_rows() |>
       list()
     inputs[["tumorFastqListRows"]] <- inputs[["tumorSequenceData"]][["fastqListRows"]]
-    inputs[["tumorSequenceData"]] <- NULL
-    inputs[["somaticReference"]] <- NULL
-    inputs[["targetedCallerOptions"]] <- NULL
-    inputs[["alignmentOptions"]] <- NULL
-    inputs[["snvVariantCallerOptions"]] <- NULL
   }
+  inputs[["sequenceData"]] <- NULL
+  inputs[["tumorSequenceData"]] <- NULL
+  inputs[["somaticReference"]] <- NULL
+  inputs[["targetedCallerOptions"]] <- NULL
+  inputs[["alignmentOptions"]] <- NULL
+  inputs[["snvVariantCallerOptions"]] <- NULL
 
   inputs <- inputs |>
     tibble::as_tibble_row() |>

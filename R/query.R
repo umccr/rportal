@@ -98,6 +98,7 @@ portaldb_query_mart_table <- function(query = NULL, table = "workflow") {
 #' \dontrun{
 #' prid <- shQuote("2025060866284123")
 #' query <- glue("WHERE \"portal_run_id\" IN ({prid});")
+#' query <- glue("WHERE \"workflow_name\" = 'dragen-wgts-dna';")
 #' query <- ";"
 #' wfs <- portaldb_query_workflow(query)
 #' }
