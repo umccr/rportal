@@ -2,7 +2,7 @@
 % Please edit documentation in R/query.R
 \name{portaldb_query_bam}
 \alias{portaldb_query_bam}
-\title{PortalDB Query bam Table}
+\title{PortalDB Query Mart bam Table}
 \usage{
 portaldb_query_bam(query = NULL)
 }

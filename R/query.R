@@ -83,11 +83,11 @@ portaldb_query_mart_table <- function(query = NULL, table = "workflow") {
   portaldb_query(q1)
 }
 
-#' PortalDB Query Mart Workflow
+#' PortalDB Query Mart accreditation_lims Table
 #'
-#' Queries the `workflow` table with the given query.
+#' Queries the `accreditation_lims` table with the given query.
 #' Note this is simply a convenience function that prepends
-#' `SELECT * FROM "orcavault"."mart"."workflow" ` to any
+#' `SELECT * FROM "orcavault"."mart"."accreditation_lims" ` to any
 #' `query` you provide.
 #' See examples.
 #'
@@ -96,18 +96,106 @@ portaldb_query_mart_table <- function(query = NULL, table = "workflow") {
 #'
 #' @examples
 #' \dontrun{
-#' prid <- shQuote("2025060866284123")
-#' query <- glue("WHERE \"portal_run_id\" IN ({prid});")
-#' query <- glue("WHERE \"workflow_name\" = 'dragen-wgts-dna';")
-#' query <- ";"
-#' wfs <- portaldb_query_workflow(query)
+#' libids <- shQuote(paste(c("L2501116", "L2501087", "L2501069"), collapse = "|"))
+#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
+#' portaldb_query_accreditationlims(query)
+#' query_ptc <- glue("WHERE \"label\" = 'ptc';")
+#' portaldb_query_accreditationlims(query_ptc)
 #' }
 #' @export
-portaldb_query_workflow <- function(query = NULL) {
-  portaldb_query_mart_table(query = query, table = "workflow")
+portaldb_query_accreditationlims <- function(query = NULL) {
+  portaldb_query_mart_table(query = query, table = "accreditation_lims")
 }
 
-#' PortalDB Query Mart Lims
+#' PortalDB Query Mart bam Table
+#'
+#' Queries the `bam` table with the given query.
+#' Note this is simply a convenience function that prepends
+#' `SELECT * FROM "orcavault"."mart"."bam" ` to any
+#' `query` you provide.
+#' See examples.
+#'
+#' @param query SQL query string.
+#' @return Tibble with results from query.
+#'
+#' @examples
+#' \dontrun{
+#' libids <- shQuote(paste(c("L2400340", "L2400256", "L2500469"), collapse = "|"))
+#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
+#' portaldb_query_bam(query)
+#' }
+#' @export
+portaldb_query_bam <- function(query = NULL) {
+  portaldb_query_mart_table(query = query, table = "bam")
+}
+
+#' PortalDB Query Mart curation_lims Table
+#'
+#' Queries the `curation_lims` table with the given query.
+#' Note this is simply a convenience function that prepends
+#' `SELECT * FROM "orcavault"."mart"."curation_lims" ` to any
+#' `query` you provide.
+#' See examples.
+#'
+#' @param query SQL query string.
+#' @return Tibble with results from query.
+#'
+#' @examples
+#' \dontrun{
+#' libids <- shQuote(paste(c("L2400340", "L2400256", "L2500469"), collapse = "|"))
+#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
+#' portaldb_query_curationlims(query)
+#' }
+#' @export
+portaldb_query_curationlims <- function(query = NULL) {
+  portaldb_query_mart_table(query = query, table = "curation_lims")
+}
+
+#' PortalDB Query Mart fastq Table
+#'
+#' Queries the `fastq` table with the given query.
+#' Note this is simply a convenience function that prepends
+#' `SELECT * FROM "orcavault"."mart"."fastq" ` to any
+#' `query` you provide.
+#' See examples.
+#'
+#' @param query SQL query string.
+#' @return Tibble with results from query.
+#'
+#' @examples
+#' \dontrun{
+#' libids <- shQuote(paste(c("L2100192", "L2100191", "L2500469"), collapse = "|"))
+#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
+#' res <- portaldb_query_fastq(query)
+#' }
+#' @export
+portaldb_query_fastq <- function(query = NULL) {
+  portaldb_query_mart_table(query = query, table = "fastq")
+}
+
+#' PortalDB Query Mart fastq_history Table
+#'
+#' Queries the `fastq_history` table with the given query.
+#' Note this is simply a convenience function that prepends
+#' `SELECT * FROM "orcavault"."mart"."fastq_history" ` to any
+#' `query` you provide.
+#' See examples.
+#'
+#' @param query SQL query string.
+#' @return Tibble with results from query.
+#'
+#' @examples
+#' \dontrun{
+#' libids <- shQuote(paste(c("L2100192", "L2100191", "L2500469"), collapse = "|"))
+#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
+#' res <- portaldb_query_fastqhistory(query)
+#' }
+#' @export
+portaldb_query_fastqhistory <- function(query = NULL) {
+  portaldb_query_mart_table(query = query, table = "fastq_history")
+}
+
+#' PortalDB Query Mart lims Table
 #'
 #' Queries the `lims` table with the given query.
 #' Note this is simply a convenience function that prepends
@@ -137,11 +225,11 @@ portaldb_query_lims <- function(query = NULL) {
   portaldb_query_mart_table(query = query, table = "lims")
 }
 
-#' PortalDB Query fastq Table
+#' PortalDB Query Mart workflow Table
 #'
-#' Queries the `fastq` table with the given query.
+#' Queries the `workflow` table with the given query.
 #' Note this is simply a convenience function that prepends
-#' `SELECT * FROM "orcavault"."mart"."fastq" ` to any
+#' `SELECT * FROM "orcavault"."mart"."workflow" ` to any
 #' `query` you provide.
 #' See examples.
 #'
@@ -150,77 +238,17 @@ portaldb_query_lims <- function(query = NULL) {
 #'
 #' @examples
 #' \dontrun{
-#' libids <- shQuote(paste(c("L2100192", "L2100191", "L2500469"), collapse = "|"))
-#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
-#' res <- portaldb_query_fastq(query)
+#' prid <- shQuote("2025060866284123")
+#' query <- glue("WHERE \"portal_run_id\" IN ({prid});")
+#' query <- glue("WHERE \"workflow_name\" = 'dragen-wgts-dna';")
+#' query <- ";"
+#' wfs <- portaldb_query_workflow(query)
 #' }
 #' @export
-portaldb_query_fastq <- function(query = NULL) {
-  portaldb_query_mart_table(query = query, table = "fastq")
+portaldb_query_workflow <- function(query = NULL) {
+  portaldb_query_mart_table(query = query, table = "workflow")
 }
 
-#' PortalDB Query fastq_history Table
-#'
-#' Queries the `fastq_history` table with the given query.
-#' Note this is simply a convenience function that prepends
-#' `SELECT * FROM "orcavault"."mart"."fastq_history" ` to any
-#' `query` you provide.
-#' See examples.
-#'
-#' @param query SQL query string.
-#' @return Tibble with results from query.
-#'
-#' @examples
-#' \dontrun{
-#' libids <- shQuote(paste(c("L2100192", "L2100191", "L2500469"), collapse = "|"))
-#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
-#' res <- portaldb_query_fastqhistory(query)
-#' }
-#' @export
-portaldb_query_fastqhistory <- function(query = NULL) {
-  portaldb_query_mart_table(query = query, table = "fastq_history")
-}
 
-#' PortalDB Query curation_lims Table
-#'
-#' Queries the `curation_lims` table with the given query.
-#' Note this is simply a convenience function that prepends
-#' `SELECT * FROM "orcavault"."mart"."curation_lims" ` to any
-#' `query` you provide.
-#' See examples.
-#'
-#' @param query SQL query string.
-#' @return Tibble with results from query.
-#'
-#' @examples
-#' \dontrun{
-#' libids <- shQuote(paste(c("L2400340", "L2400256", "L2500469"), collapse = "|"))
-#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
-#' portaldb_query_curationlims(query)
-#' }
-#' @export
-portaldb_query_curationlims <- function(query = NULL) {
-  portaldb_query_mart_table(query = query, table = "curation_lims")
-}
 
-#' PortalDB Query bam Table
-#'
-#' Queries the `bam` table with the given query.
-#' Note this is simply a convenience function that prepends
-#' `SELECT * FROM "orcavault"."mart"."bam" ` to any
-#' `query` you provide.
-#' See examples.
-#'
-#' @param query SQL query string.
-#' @return Tibble with results from query.
-#'
-#' @examples
-#' \dontrun{
-#' libids <- shQuote(paste(c("L2400340", "L2400256", "L2500469"), collapse = "|"))
-#' query <- glue("WHERE REGEXP_LIKE(\"library_id\", {libids});")
-#' portaldb_query_bam(query)
-#' }
-#' @export
-portaldb_query_bam <- function(query = NULL) {
-  portaldb_query_mart_table(query = query, table = "bam")
-}
+

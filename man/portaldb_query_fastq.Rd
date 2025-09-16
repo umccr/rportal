@@ -2,7 +2,7 @@
 % Please edit documentation in R/query.R
 \name{portaldb_query_fastq}
 \alias{portaldb_query_fastq}
-\title{PortalDB Query fastq Table}
+\title{PortalDB Query Mart fastq Table}
 \usage{
 portaldb_query_fastq(query = NULL)
 }

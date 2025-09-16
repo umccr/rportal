@@ -2,7 +2,7 @@
 % Please edit documentation in R/query.R
 \name{portaldb_query_lims}
 \alias{portaldb_query_lims}
-\title{PortalDB Query Mart Lims}
+\title{PortalDB Query Mart lims Table}
 \usage{
 portaldb_query_lims(query = NULL)
 }
