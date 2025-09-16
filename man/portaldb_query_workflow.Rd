@@ -2,7 +2,7 @@
 % Please edit documentation in R/query.R
 \name{portaldb_query_workflow}
 \alias{portaldb_query_workflow}
-\title{PortalDB Query Mart Workflow}
+\title{PortalDB Query Mart workflow Table}
 \usage{
 portaldb_query_workflow(query = NULL)
 }
@@ -23,6 +23,7 @@ See examples.
 \dontrun{
 prid <- shQuote("2025060866284123")
 query <- glue("WHERE \"portal_run_id\" IN ({prid});")
+query <- glue("WHERE \"workflow_name\" = 'dragen-wgts-dna';")
 query <- ";"
 wfs <- portaldb_query_workflow(query)
 }
