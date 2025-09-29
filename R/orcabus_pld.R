@@ -651,9 +651,15 @@ pld_dragenwgtsdna <- function(pld) {
   inputs[["sequenceData"]] <- NULL
   inputs[["tumorSequenceData"]] <- NULL
   inputs[["somaticReference"]] <- NULL
+  inputs[["somaticMsiOptions"]] <- NULL
+  inputs[["somaticTmbOptions"]] <- NULL
   inputs[["targetedCallerOptions"]] <- NULL
   inputs[["alignmentOptions"]] <- NULL
+  inputs[["somaticSvCallerOptions"]] <- NULL
   inputs[["snvVariantCallerOptions"]] <- NULL
+  inputs[["somaticCnvCallerOptions"]] <- NULL
+  inputs[["somaticNirvanaAnnotationOptions"]] <- NULL
+
 
   inputs <- inputs |>
     tibble::as_tibble_row() |>
