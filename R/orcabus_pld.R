@@ -145,10 +145,12 @@ pld_oawgtsdna <- function(pld) {
   pdata <- pld[["data"]]
   id <- pld[["orcabusId"]]
   # collapse FastqListRowIds into single string
-  pdata[["tags"]][["tumorFastqListRowIds"]] <- pdata[["tags"]][["tumorFastqListRowIds"]] |>
+  pdata[["tags"]][["fastqRgidList"]] <- pdata[["tags"]][["fastqRgidList"]] |>
     paste(collapse = ", ")
-  pdata[["tags"]][["normalFastqListRowIds"]] <- pdata[["tags"]][["normalFastqListRowIds"]] |>
-    paste(collapse = ", ")
+  if (!is.null(pdata[["tags"]][["tumorFastqRgidList"]])) {
+    pdata[["tags"]][["tumorFastqRgidList"]] <- pdata[["tags"]][["tumorFastqRgidList"]] |>
+      paste(collapse = ", ")
+  }
   tags <- pdata[["tags"]] |>
     purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
     tibble::as_tibble_row() |>
@@ -390,6 +392,13 @@ pld_sash <- function(pld) {
   payload_okay(pld)
   pdata <- pld[["data"]]
   id <- pld[["orcabusId"]]
+  # collapse FastqRgidList into single string
+  pdata[["tags"]][["fastqRgidList"]] <- pdata[["tags"]][["fastqRgidList"]] |>
+    paste(collapse = ", ")
+  if (!is.null(pdata[["tags"]][["tumorFastqRgidList"]])) {
+    pdata[["tags"]][["tumorFastqRgidList"]] <- pdata[["tags"]][["tumorFastqRgidList"]] |>
+      paste(collapse = ", ")
+  }
   tags <- pdata[["tags"]] |>
     tibble::as_tibble_row() |>
     dplyr::mutate(orcabusId = id)
@@ -651,9 +660,15 @@ pld_dragenwgtsdna <- function(pld) {
   inputs[["sequenceData"]] <- NULL
   inputs[["tumorSequenceData"]] <- NULL
   inputs[["somaticReference"]] <- NULL
+  inputs[["somaticMsiOptions"]] <- NULL
+  inputs[["somaticTmbOptions"]] <- NULL
   inputs[["targetedCallerOptions"]] <- NULL
   inputs[["alignmentOptions"]] <- NULL
+  inputs[["somaticSvCallerOptions"]] <- NULL
   inputs[["snvVariantCallerOptions"]] <- NULL
+  inputs[["somaticCnvCallerOptions"]] <- NULL
+  inputs[["somaticNirvanaAnnotationOptions"]] <- NULL
+
 
   inputs <- inputs |>
     tibble::as_tibble_row() |>
