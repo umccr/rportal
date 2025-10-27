@@ -1,0 +1,160 @@
+---
+title: "{{< meta params.title >}}"
+subtitle: "Period: 2025-01-01 to 2025-10-27"
+author: "UMCCR - Genomics Platform Group"
+date: now
+date-format: "YYYY-MM-DD HH:mm Z"
+execute:
+  echo: false
+  eval: true
+format: revealjs
+params:
+  title: "UMCCR PortalDB Workflow Summary"
+---
+
+```{r}
+#| label: pkg_load
+#| message: false
+{
+  require(assertthat, include.only = "assert_that")
+  require(dplyr)
+  require(dracarys, include.only = "session_info_kable")
+  require(glue, include.only = "glue")
+  require(here, include.only = "here")
+  require(jsonlite, include.only = "fromJSON")
+  require(kableExtra, include.only = "kbl")
+  require(purrr, include.only = "map")
+  require(rportal, include.only = "portaldb_query_workflow")
+  require(readr, include.only = "cols")
+  require(tibble, include.only = "as_tibble")
+  require(tidyr, include.only = "unnest")
+  require(knitr, include.only = "kable")
+  require(ggplot2)
+}
+set.seed(42)
+```
+
+```{r}
+#| label: envvars
+#| eval: false
+# make sure you have logged into AWS and ICA
+c("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION") |>
+  rportal::envvar_defined() |>
+  stopifnot()
+```
+
+```{r}
+#| label: vars
+wf_names <- c(
+  "arriba-wgts-rna",
+  "BCLConvert",
+  "bclconvert",
+  "bclconvert-interop-qc",
+  "bssh-fastq-to-aws-copy",
+  "bssh-to-aws-s3",
+  "cttsov2",
+  "dragen-tso500-ctdna",
+  "dragen-wgts-dna",
+  "dragen-wgts-rna",
+  "oncoanalyser-wgts-dna",
+  "oncoanalyser-wgts-dna-rna",
+  "oncoanalyser-wgts-rna",
+  "pieriandx",
+  "pieriandx-tso500-ctdna",
+  "rnasum",
+  "sash",
+  "tumor-normal",
+  "umccrise",
+  "wgts-qc",
+  "wts"
+)
+```
+
+```{r}
+#| label: vars
+this_dir <- here("inst/reports/mega_seqrunsum/2025")
+source(here("inst/reports/mega_seqrunsum/2025/funcs.R"))
+rds_wf <- file.path(this_dir, "nogit/wf_2025-10-27.rds")
+rds_lims <- file.path(this_dir, "nogit/lims_2025-10-27.rds")
+```
+
+```{r}
+#| label: query_tables
+#| eval: false
+# Grab all rows from workflow table
+query_wf <- glue('ORDER BY "workflow_start" DESC;')
+wf_raw <- rportal::portaldb_query_workflow(query_wf)
+saveRDS(wf_raw, rds_wf)
+
+query_lims <- glue('ORDER BY "library_id" DESC;')
+lims_raw <- rportal::portaldb_query_lims(query_lims)
+saveRDS(lims_raw, rds_lims)
+```
+
+```{r}
+#| label: table_readrds
+wf_raw <- readRDS(rds_wf)
+lims_raw <- readRDS(rds_lims)
+wf_year <- wf_raw |>
+  mutate(year = lubridate::year(.data$workflow_start)) |>
+  filter(year %in% c(2025, 2024, 2023))
+```
+
+# Workflow Counts
+
+```{r}
+tot_wf_counts <-
+  wf_year |>
+  select(
+    year,
+    portal_run_id,
+    name = workflow_name,
+    workflow_start,
+    workflow_end,
+    workflow_status
+  ) |>
+  filter(workflow_status == "SUCCEEDED") |>
+  distinct(portal_run_id, .keep_all = TRUE) |>
+  mutate(
+    wf_duration = as.numeric(difftime(.data$workflow_end, .data$workflow_start, units = "mins")),
+    name = ifelse(name %in% c("BCLConvert", "bcl_convert", "BclConvert"), "bclconvert", name),
+    # name = as.factor(name),
+    year = as.character(year)
+  ) |>
+  count(year, name)
+```
+
+---
+
+```{r}
+#| fig-height: 7.5
+ggplot2::theme_set(ggplot2::theme_bw(base_size = 16))
+p <- tot_wf_counts |>
+  ggplot(aes(x = name, y = n, fill = year)) +
+  geom_bar(position = position_dodge(preserve = "single"), stat = "identity") +
+  coord_flip() +
+  scale_y_continuous(breaks = scales::pretty_breaks(20)) +
+  ggtitle("Total number of workflows per year")
+p
+# plotly::ggplotly(p)
+```
+
+---
+
+```{r}
+tot_wf_counts |>
+  arrange(name, year) |>
+  reactable::reactable(
+    bordered = TRUE,
+    filterable = TRUE,
+    height = 500,
+    fullWidth = TRUE,
+    highlight = TRUE,
+    pagination = FALSE,
+    resizable = TRUE,
+    searchable = TRUE,
+    sortable = TRUE,
+    striped = TRUE,
+    wrap = FALSE
+  )
+```
