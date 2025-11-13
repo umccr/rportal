@@ -155,8 +155,11 @@ pld_oawgtsdna <- function(pld) {
     purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
     tibble::as_tibble_row() |>
     dplyr::mutate(orcabusId = id)
-  # remove trailing slashes from S3 directories
-  inputs <- pdata[["inputs"]] |>
+  inputs <- pdata[["inputs"]]
+  # handle genomes list
+  inputs[["genomes"]] <- NULL
+  inputs <- inputs |>
+    # remove trailing slashes from S3 directories
     purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
     tibble::as_tibble_row() |>
     rlang::set_names(\(x) glue("input_{x}")) |>
@@ -668,7 +671,6 @@ pld_dragenwgtsdna <- function(pld) {
   inputs[["snvVariantCallerOptions"]] <- NULL
   inputs[["somaticCnvCallerOptions"]] <- NULL
   inputs[["somaticNirvanaAnnotationOptions"]] <- NULL
-
 
   inputs <- inputs |>
     tibble::as_tibble_row() |>

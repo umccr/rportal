@@ -133,8 +133,11 @@ orca_wfrid2payload <- function(wfrid, token, stage = "prod") {
 #' prid <- "2025060866284123" # wgs-tn
 #' prid <- "20250630a115127b" # dragen-wgts-dna (germline only)
 #' prid <- "20250624d45e528c" # dragen-wgts-dna (?)
+#' prid <- "202509100c2a889d" # oa
+#' prid <- "202509092b9ab2db" # dragen-wgts-dna
+#' prid <- "20250919121765d8" # sash
 #' token <- orca_jwt() |> jwt_validate()
-#' p3 <- orca_prid2wfpayload(prid = prid, token = token)
+#' p <- orca_prid2wfpayload(prid = prid, token = token)
 #' }
 #'
 #' @export
@@ -166,6 +169,8 @@ orca_prid2wfpayload <- function(prid, token, stage = "prod") {
 #' libid <- "L2401603" # wgs
 #' libid <- "L2401610" # oa
 #' libid <- "L2401445" # cttsov2
+#' libid <- "L2501374" # rnasum
+#' libid <- "L1800224" # wgts-dna
 #' wf_name <- NULL
 #' token <- orca_jwt() |> jwt_validate()
 #' d <- orca_libid2workflows(libid = libid, token = token, wf_name = wf_name, page_size = 20)
@@ -225,11 +230,12 @@ orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, s
 #'
 #' @export
 orca_workflow_list <- function(
-    wf_name = NULL,
-    status = "SUCCEEDED",
-    token,
-    page_size = 10,
-    stage = "prod") {
+  wf_name = NULL,
+  status = "SUCCEEDED",
+  token,
+  page_size = 10,
+  stage = "prod"
+) {
   assertthat::assert_that(stage %in% orca_stages())
   wf_name_qstring <- ""
   if (!is.null(wf_name)) {
