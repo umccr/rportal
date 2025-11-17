@@ -171,6 +171,7 @@ orca_prid2wfpayload <- function(prid, token, stage = "prod") {
 #' libid <- "L2401445" # cttsov2
 #' libid <- "L2501374" # rnasum
 #' libid <- "L1800224" # wgts-dna
+#' libid <- "L2500351" # wgts-dna germline
 #' wf_name <- NULL
 #' token <- orca_jwt() |> jwt_validate()
 #' d <- orca_libid2workflows(libid = libid, token = token, wf_name = wf_name, page_size = 20)
@@ -186,6 +187,19 @@ orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, s
   url <- glue("{ep}?libraries__libraryId={libid}&rowsPerPage={page_size}{wf_name_qstring}")
   x <- orca_query_url(url, token)
   res <- x[["results"]]
+  # handle changed representation of wf_name, wf_version
+  wf_name <- res |> purrr::map_chr(list("workflow", "name"), .default = NA)
+  wf_version <- res |> purrr::map_chr(list("workflow", "version"), .default = NA)
+  wf_name <- ifelse(
+    is.na(wf_name),
+    res |> purrr::map_chr(list("workflow", "workflowName"), .default = NA),
+    wf_name
+  )
+  wf_version <- ifelse(
+    is.na(wf_version),
+    res |> purrr::map_chr(list("workflow", "workflowVersion"), .default = NA),
+    wf_version
+  )
   d <- tibble::tibble(
     orcabusId = res |> purrr::map_chr("orcabusId", .default = NA),
     currentStateOrcabusId = res |> purrr::map_chr(list("currentState", "orcabusId"), .default = NA),
@@ -194,8 +208,8 @@ orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, s
     portalRunId = res |> purrr::map_chr("portalRunId", .default = NA),
     wfr_name = res |> purrr::map_chr("workflowRunName", .default = NA),
     wf_id = res |> purrr::map_chr(list("workflow", "orcabusId"), .default = NA),
-    wf_name = res |> purrr::map_chr(list("workflow", "workflowName"), .default = NA),
-    wf_version = res |> purrr::map_chr(list("workflow", "workflowVersion"), .default = NA),
+    wf_name = wf_name,
+    wf_version = wf_version,
     executionId = res |> purrr::map_chr("executionId", .default = NA),
     comment = res |> purrr::map_chr("comment", .default = NA),
     analysisRun = res |> purrr::map_chr("analysisRun", .default = NA)
