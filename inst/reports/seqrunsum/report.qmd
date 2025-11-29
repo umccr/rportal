@@ -27,30 +27,39 @@ format:
       body-width: 1300px
 params:
   title: "UMCCR PortalDB Workflow Summary"
-  date_start: "XXXX-XX-XX"
-  date_end: "XXXX-XX-XX"
+  date_start: "2025-09-01"
+  date_end: "2025-09-15"
 ---
+
+```{r}
+#| label: params_setup
+#| eval: false
+params <- list(
+  date_start = "2025-10-24",
+  date_end = "2025-10-28"
+)
+```
 
 ```{r}
 #| label: pkg_load
 #| message: false
 {
-  require(assertthat, include.only = "assert_that")
-  require(dplyr)
-  require(dracarys, include.only = "session_info_kable")
-  require(DT, include.only = "datatable")
-  require(glue, include.only = "glue")
-  require(here, include.only = "here")
-  require(jsonlite, include.only = "fromJSON")
-  require(kableExtra, include.only = "kbl")
-  require(purrr, include.only = "map")
-  require(RColorBrewer, include.only = "brewer.pal")
-  require(rportal, include.only = "portaldb_query_workflow")
-  require(readr, include.only = "cols")
-  require(tibble, include.only = "as_tibble")
-  require(tidyr, include.only = "unnest")
-  require(knitr, include.only = "kable")
-  require(vistime, include.only = "vistime")
+  use("assertthat", "assert_that")
+  use("dplyr")
+  use("dracarys", "session_info_kable")
+  use("DT", "datatable")
+  use("glue", "glue")
+  use("here", "here")
+  use("jsonlite", "fromJSON")
+  use("kableExtra", "kbl")
+  use("purrr", "map")
+  use("RColorBrewer", "brewer.pal")
+  use("rportal", "portaldb_query_workflow")
+  use("readr", "cols")
+  use("tibble", "as_tibble")
+  use("tidyr", "unnest")
+  use("knitr", "kable")
+  use("vistime", "vistime")
 }
 set.seed(42)
 ```
@@ -61,8 +70,8 @@ set.seed(42)
 c("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION") |>
   rportal::envvar_defined() |>
   stopifnot()
-icav1_token <- Sys.getenv("ICA_ACCESS_TOKEN") |>
-  dracarys::ica_token_validate()
+token <- rportal::orca_jwt() |>
+  rportal::jwt_validate()
 ```
 
 ```{r funcs_source}
@@ -76,21 +85,30 @@ dstart <- params$date_start
 dend <- params$date_end
 date_start <- as.POSIXct(glue("{dstart}T00:00:01"), format = fmt1)
 date_end <- as.POSIXct(glue("{dend}T23:59:59"), format = fmt1)
-wfs <- tibble::tribble(
-  ~name,
-  "bcl_convert",
-  "tso_ctdna_tumor_only",
-  "wgs_alignment_qc",
-  "wts_alignment_qc",
-  "wts_tumor_only",
-  "wgs_tumor_normal",
-  "umccrise",
-  "rnasum",
-  "star_alignment",
-  "oncoanalyser_wts",
-  "oncoanalyser_wgs",
-  "oncoanalyser_wgts_existing_both",
-  "sash"
+wfs <- tibble::tibble(
+  name = c(
+    "arriba-wgts-rna",
+    "BCLConvert",
+    "bclconvert",
+    "bclconvert-interop-qc",
+    "bssh-fastq-to-aws-copy",
+    "bssh-to-aws-s3",
+    "cttsov2",
+    "dragen-tso500-ctdna",
+    "dragen-wgts-dna",
+    "dragen-wgts-rna",
+    "oncoanalyser-wgts-dna",
+    "oncoanalyser-wgts-dna-rna",
+    "oncoanalyser-wgts-rna",
+    "pieriandx",
+    "pieriandx-tso500-ctdna",
+    "rnasum",
+    "sash",
+    "tumor-normal",
+    "umccrise",
+    "wgts-qc",
+    "wts"
+  )
 ) |>
   mutate(func = glue("rportal::meta_{name}"))
 ```
@@ -98,7 +116,9 @@ wfs <- tibble::tribble(
 ```{r}
 #| label: query_workflow_table
 #| message: false
-query_wf <- glue('WHERE "start" >= date(\'{dstart}\') AND "start" <= date(\'{dend}\') ORDER BY "start" DESC;')
+query_wf <- glue(
+  'WHERE "workflow_start" >= date(\'{dstart}\') AND "workflow_start" <= date(\'{dend}\') ORDER BY "workflow_start" DESC;'
+)
 pmeta_raw <- rportal::portaldb_query_workflow(query_wf)
 # check there are no rogue unaccounted wfs run
 stopifnot(all(pmeta_raw[["type_name"]] %in% wfs[["name"]]))
@@ -108,10 +128,10 @@ stopifnot(all(pmeta_raw[["type_name"]] %in% wfs[["name"]]))
 #| label: tidy_workflow_table
 pmeta <- pmeta_raw |>
   filter(
-    .data$start >= date_start,
-    is.na(.data$end) | .data$end <= date_end
+    .data$workflow_start >= date_start,
+    is.na(.data$workflow_end) | .data$workflow_end <= date_end
   ) |>
-  mutate(type_name = factor(.data$type_name, levels = wfs[["name"]]))
+  mutate(workflow_name = factor(.data$workflow_name, levels = wfs[["name"]]))
 status <- c("Succeeded", "Running", "Failed", "Aborted")
 # list of tidy tbls per wf
 pmeta_tidy <- wfs |>
@@ -132,13 +152,18 @@ query_lims <- glue("WHERE REGEXP_LIKE(\"library_id\", '{libidsq}');")
 lims_raw <- rportal::portaldb_query_limsrow(query_lims)
 lims <- lims_raw |>
   select(
-    SubjectID = "subject_id", SampleID = "sample_id", LibraryID = "library_id",
+    SubjectID = "subject_id",
+    SampleID = "sample_id",
+    LibraryID = "library_id",
     ExternalSubjectID = "external_subject_id",
-    ProjectOwner = "project_owner", ProjectName = "project_name",
+    ProjectOwner = "project_owner",
+    ProjectName = "project_name",
     Type = "type",
     Phenotype = "phenotype",
-    Topup = "topup", Workflow = "workflow",
-    Assay = "assay", Source = "source",
+    Topup = "topup",
+    Workflow = "workflow",
+    Assay = "assay",
+    Source = "source",
   ) |>
   distinct()
 ```
@@ -147,11 +172,18 @@ lims <- lims_raw |>
 #| label: data_setup
 pmeta_sumy <- pmeta |>
   select(
-    "start", "end", "wfr_name", "type_name", "wfr_id", "portal_run_id", "end_status"
+    "start",
+    "end",
+    "wfr_name",
+    "type_name",
+    "wfr_id",
+    "portal_run_id",
+    "end_status"
   ) |>
   rowwise() |>
   mutate(
-    wfr_name = if_else(grepl("umccr__automated", .data$wfr_name),
+    wfr_name = if_else(
+      grepl("umccr__automated", .data$wfr_name),
       glue("{.data$wfr_name}"),
       glue("umccr__automated__{.data$wfr_name}")
     ),
@@ -230,7 +262,9 @@ gds_fastqs1 <- gds_outdirs_fastq |>
   mutate(
     list_fqs = list(
       dracarys::gds_files_list_fastq(
-        gdsdir = .data$gds_outdirs_fastq, token = icav1_token, page_size = 1000
+        gdsdir = .data$gds_outdirs_fastq,
+        token = icav1_token,
+        page_size = 1000
       )
     )
   ) |>
@@ -241,7 +275,13 @@ gds_fastqs1 <- gds_outdirs_fastq |>
 # across listed FASTQs and found FASTQs
 gds_fastqs2 <- gds_outdirs_fastq |>
   rowwise() |>
-  mutate(fq = list(funcs$gds_fastqlistcsv_read(.data$outdirs_reports, token = icav1_token, page_size = 20))) |>
+  mutate(
+    fq = list(funcs$gds_fastqlistcsv_read(
+      .data$outdirs_reports,
+      token = icav1_token,
+      page_size = 20
+    ))
+  ) |>
   ungroup() |>
   tidyr::unnest("fq") |>
   mutate(path = file.path(dirname(.data$gds_outdirs_fastq), .data$path)) |>
@@ -252,19 +292,54 @@ stopifnot(all(gds_fastqs1$path %in% gds_fastqs2$path))
 # now join to get the file sizes
 fq <- gds_fastqs2 |>
   left_join(gds_fastqs1, by = "path") |>
-  select("LibraryID", "SampleID", "path", "size_num", "size_chr", "topup", "rgid", "read", "lane") |>
+  select(
+    "LibraryID",
+    "SampleID",
+    "path",
+    "size_num",
+    "size_chr",
+    "topup",
+    "rgid",
+    "read",
+    "lane"
+  ) |>
   left_join(
     lims |>
-      select("SubjectID", "SampleID", "LibraryID", "ProjectOwner", "ProjectName", "Type", "Phenotype", "Workflow", "Assay") |>
+      select(
+        "SubjectID",
+        "SampleID",
+        "LibraryID",
+        "ProjectOwner",
+        "ProjectName",
+        "Type",
+        "Phenotype",
+        "Workflow",
+        "Assay"
+      ) |>
       distinct(),
     by = c("LibraryID", "SampleID")
   ) |>
   select(
-    "SubjectID", "LibraryID", "SampleID", "size_num", "size_chr", "Type", "Phenotype",
-    "Workflow", "Assay", "path", "topup", "rgid", "read", "lane", everything()
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "size_num",
+    "size_chr",
+    "Type",
+    "Phenotype",
+    "Workflow",
+    "Assay",
+    "path",
+    "topup",
+    "rgid",
+    "read",
+    "lane",
+    everything()
   ) |>
   left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
-  mutate(SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url)) |>
+  mutate(
+    SubjectID = if_else(is.na(.data$sbj_url), funcs$get_sbj_url(.data$SubjectID), .data$sbj_url)
+  ) |>
   select(-"sbj_url") |>
   arrange(desc(SubjectID))
 
@@ -305,8 +380,16 @@ if (!chunks1[[wf]]) {
 ```{r eval=chunks1[[wf]]}
 pmeta_tidy[[wf]] |>
   select(
-    "end_status", "portal_run_id", "gds_outdir_multiqc", "gds_outdir_multiqc_interop",
-    "runfolder_name", "LibraryID", "SampleID", "batch_name", "start", "end"
+    "end_status",
+    "portal_run_id",
+    "gds_outdir_multiqc",
+    "gds_outdir_multiqc_interop",
+    "runfolder_name",
+    "LibraryID",
+    "SampleID",
+    "batch_name",
+    "start",
+    "end"
   ) |>
   left_join(lims, by = c("LibraryID", "SampleID")) |>
   left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
@@ -315,9 +398,25 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "portal_run_id", "durationMin", "runfolder_name", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "batch_name", "Type", "Assay", "Source", "Workflow",
-    "start", "end", contains("gds_outdir")
+    "end_status",
+    "portal_run_id",
+    "durationMin",
+    "runfolder_name",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "batch_name",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "start",
+    "end",
+    contains("gds_outdir")
   ) |>
   arrange(portal_run_id, desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -344,9 +443,24 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "gds_outdir"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "gds_outdir"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -373,9 +487,25 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "lane", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "lane",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "gds_outdir_dragen"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -402,9 +532,25 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "lane", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "lane",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "gds_outdir_dragen"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -431,9 +577,24 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
-    "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "gds_outdir_dragen"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -455,8 +616,17 @@ if (!chunks1[[wf]]) {
 pmeta_tidy[[wf]] |>
   tidyr::unite("SampleID__LibraryID___normal", SampleID_normal, LibraryID_normal, sep = "__") |>
   tidyr::unite("SampleID__LibraryID___tumor", SampleID_tumor, LibraryID_tumor, sep = "__") |>
-  tidyr::pivot_longer(c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"), names_to = c(NA, "Phenotype"), names_sep = "___", values_to = "SampleID__LibraryID") |>
-  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  tidyr::pivot_longer(
+    c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"),
+    names_to = c(NA, "Phenotype"),
+    names_sep = "___",
+    values_to = "SampleID__LibraryID"
+  ) |>
+  tidyr::separate_wider_delim(
+    "SampleID__LibraryID",
+    delim = "__",
+    names = c("SampleID", "LibraryID")
+  ) |>
   # include Phenotype to double-check join
   left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
   left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
@@ -465,9 +635,25 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
-    "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_dragen_somatic", "gds_outdir_dragen_germline"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "gds_outdir_dragen_somatic",
+    "gds_outdir_dragen_germline"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -489,8 +675,17 @@ if (!chunks1[[wf]]) {
 pmeta_tidy[[wf]] |>
   tidyr::unite("SampleID__LibraryID___normal", SampleID_normal, LibraryID_normal, sep = "__") |>
   tidyr::unite("SampleID__LibraryID___tumor", SampleID_tumor, LibraryID_tumor, sep = "__") |>
-  tidyr::pivot_longer(c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"), names_to = c(NA, "Phenotype"), names_sep = "___", values_to = "SampleID__LibraryID") |>
-  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  tidyr::pivot_longer(
+    c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"),
+    names_to = c(NA, "Phenotype"),
+    names_sep = "___",
+    values_to = "SampleID__LibraryID"
+  ) |>
+  tidyr::separate_wider_delim(
+    "SampleID__LibraryID",
+    delim = "__",
+    names = c("SampleID", "LibraryID")
+  ) |>
   # include Phenotype to double-check join
   left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
   left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
@@ -499,9 +694,24 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_umccrise"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "gds_outdir_umccrise"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -528,9 +738,25 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "rnasum_dataset", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "gds_outdir_rnasum",
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "rnasum_dataset",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "gds_outdir_rnasum",
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -557,9 +783,24 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
-    "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_star"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "s3_outdir_star"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -586,9 +827,24 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID", "ProjectOwner", "ProjectName",
-    "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "s3_outdir_oncoanalyser"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -611,8 +867,17 @@ if (!chunks1[[wf]]) {
 pmeta_tidy[[wf]] |>
   tidyr::unite("SampleID__LibraryID___normal", SampleID_normal, LibraryID_normal, sep = "__") |>
   tidyr::unite("SampleID__LibraryID___tumor", SampleID_tumor, LibraryID_tumor, sep = "__") |>
-  tidyr::pivot_longer(c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"), names_to = c(NA, "Phenotype"), names_sep = "___", values_to = "SampleID__LibraryID") |>
-  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  tidyr::pivot_longer(
+    c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"),
+    names_to = c(NA, "Phenotype"),
+    names_sep = "___",
+    values_to = "SampleID__LibraryID"
+  ) |>
+  tidyr::separate_wider_delim(
+    "SampleID__LibraryID",
+    delim = "__",
+    names = c("SampleID", "LibraryID")
+  ) |>
   # include Phenotype to double-check join
   left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
   left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
@@ -621,9 +886,24 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "s3_outdir_oncoanalyser"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -643,11 +923,39 @@ if (!chunks1[[wf]]) {
 
 ```{r eval=chunks1[[wf]]}
 pmeta_tidy[[wf]] |>
-  tidyr::unite("SampleID__LibraryID___normal___wgs", SampleID_normal_wgs, LibraryID_normal_wgs, sep = "__") |>
-  tidyr::unite("SampleID__LibraryID___tumor___wgs", SampleID_tumor_wgs, LibraryID_tumor_wgs, sep = "__") |>
-  tidyr::unite("SampleID__LibraryID___tumor___wts", SampleID_tumor_wts, LibraryID_tumor_wts, sep = "__") |>
-  tidyr::pivot_longer(c("SampleID__LibraryID___normal___wgs", "SampleID__LibraryID___tumor___wgs", "SampleID__LibraryID___tumor___wts"), names_to = c(NA, "Phenotype", "WGTS"), names_sep = "___", values_to = "SampleID__LibraryID") |>
-  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  tidyr::unite(
+    "SampleID__LibraryID___normal___wgs",
+    SampleID_normal_wgs,
+    LibraryID_normal_wgs,
+    sep = "__"
+  ) |>
+  tidyr::unite(
+    "SampleID__LibraryID___tumor___wgs",
+    SampleID_tumor_wgs,
+    LibraryID_tumor_wgs,
+    sep = "__"
+  ) |>
+  tidyr::unite(
+    "SampleID__LibraryID___tumor___wts",
+    SampleID_tumor_wts,
+    LibraryID_tumor_wts,
+    sep = "__"
+  ) |>
+  tidyr::pivot_longer(
+    c(
+      "SampleID__LibraryID___normal___wgs",
+      "SampleID__LibraryID___tumor___wgs",
+      "SampleID__LibraryID___tumor___wts"
+    ),
+    names_to = c(NA, "Phenotype", "WGTS"),
+    names_sep = "___",
+    values_to = "SampleID__LibraryID"
+  ) |>
+  tidyr::separate_wider_delim(
+    "SampleID__LibraryID",
+    delim = "__",
+    names = c("SampleID", "LibraryID")
+  ) |>
   # include Phenotype to double-check join
   left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
   left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
@@ -656,9 +964,25 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "WGTS", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_oncoanalyser"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "WGTS",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "s3_outdir_oncoanalyser"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -680,8 +1004,17 @@ if (!chunks1[[wf]]) {
 pmeta_tidy[[wf]] |>
   tidyr::unite("SampleID__LibraryID___normal", SampleID_normal, LibraryID_normal, sep = "__") |>
   tidyr::unite("SampleID__LibraryID___tumor", SampleID_tumor, LibraryID_tumor, sep = "__") |>
-  tidyr::pivot_longer(c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"), names_to = c(NA, "Phenotype"), names_sep = "___", values_to = "SampleID__LibraryID") |>
-  tidyr::separate_wider_delim("SampleID__LibraryID", delim = "__", names = c("SampleID", "LibraryID")) |>
+  tidyr::pivot_longer(
+    c("SampleID__LibraryID___normal", "SampleID__LibraryID___tumor"),
+    names_to = c(NA, "Phenotype"),
+    names_sep = "___",
+    values_to = "SampleID__LibraryID"
+  ) |>
+  tidyr::separate_wider_delim(
+    "SampleID__LibraryID",
+    delim = "__",
+    names = c("SampleID", "LibraryID")
+  ) |>
   # include Phenotype to double-check join
   left_join(lims, by = c("LibraryID", "SampleID", "SubjectID", "Phenotype")) |>
   left_join(clrs1 |> select("sbjid", "sbj_url"), by = c("SubjectID" = "sbjid")) |>
@@ -690,9 +1023,24 @@ pmeta_tidy[[wf]] |>
     durationMin = round(as.numeric(difftime(end, start, units = "mins")))
   ) |>
   select(
-    "end_status", "durationMin", "SubjectID", "LibraryID", "SampleID", "Phenotype", "ExternalSubjectID",
-    "ProjectOwner", "ProjectName", "Type", "Assay", "Source", "Workflow",
-    "portal_run_id", "wfr_id", "start", "end", "s3_outdir_sash"
+    "end_status",
+    "durationMin",
+    "SubjectID",
+    "LibraryID",
+    "SampleID",
+    "Phenotype",
+    "ExternalSubjectID",
+    "ProjectOwner",
+    "ProjectName",
+    "Type",
+    "Assay",
+    "Source",
+    "Workflow",
+    "portal_run_id",
+    "wfr_id",
+    "start",
+    "end",
+    "s3_outdir_sash"
   ) |>
   arrange(desc(SubjectID), start) |>
   funcs$dt_view(wf, columns = list(end_status = end_status_def, SubjectID = SubjectID_def))
@@ -705,8 +1053,17 @@ pmeta_tidy[[wf]] |>
 ```{r}
 si <- dracarys:::session_info_tbls(
   pkgs = c(
-    "dracarys", "rportal", "base", "dplyr", "DT", "readr", "purrr",
-    "tidyr", "tibble", "vistime", "kableExtra"
+    "dracarys",
+    "rportal",
+    "base",
+    "dplyr",
+    "DT",
+    "readr",
+    "purrr",
+    "tidyr",
+    "tibble",
+    "vistime",
+    "kableExtra"
   )
 )
 si_pkg <- si$si_pkg |>
