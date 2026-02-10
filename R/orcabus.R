@@ -238,7 +238,7 @@ orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, s
 #' wf_name <- NULL
 #' wf_name <- "umccrise"
 #' token <- orca_jwt() |> jwt_validate()
-#' wfs <- orca_workflow_list(wf_name = wf_name, token = token, page_size = 500)
+#' wfs <- orca_workflow_list(wf_name = wf_name, token = token, page_size = 1000)
 #' }
 #' @return Tibble with results.
 #'
@@ -273,12 +273,26 @@ orca_workflow_list <- function(
     comment = res |> purrr::map_chr("comment", .default = NA),
     analysisRun = res |> purrr::map_chr("analysisRun", .default = NA),
     workflowId = res |> purrr::map_chr(list("workflow", "orcabusId"), .default = NA),
-    workflowName = res |> purrr::map_chr(list("workflow", "workflowName"), .default = NA),
-    workflowVersion = res |> purrr::map_chr(list("workflow", "workflowVersion"), .default = NA),
+    workflowName = res |> purrr::map_chr(list("workflow", "name"), .default = NA),
+    workflowVersion = res |> purrr::map_chr(list("workflow", "version"), .default = NA),
     currentStateOrcabusId = res |> purrr::map_chr(list("currentState", "orcabusId"), .default = NA),
     currentStateStatus = res |> purrr::map_chr(list("currentState", "status"), .default = NA),
     currentStateTimestamp = res |> purrr::map_chr(list("currentState", "timestamp"), .default = NA)
-  )
+  ) |>
+    dplyr::select(
+      "portalRunId",
+      "workflowName",
+      "currentStateStatus",
+      "workflowRunName",
+      "orcabusId",
+      "workflowId",
+      "workflowVersion",
+      "currentStateOrcabusId",
+      "currentStateTimestamp",
+      "executionId",
+      "analysisRun",
+      dplyr::everything()
+    )
   return(d)
 }
 

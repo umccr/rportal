@@ -33,8 +33,11 @@ prid <- "202411152feba98c" # bclconvert-interopqc
 prid <- "2025060866284123" # wgs-tn
 prid <- "20250630a115127b" # dragen-wgts-dna (germline only)
 prid <- "20250624d45e528c" # dragen-wgts-dna (?)
+prid <- "202509100c2a889d" # oa
+prid <- "202509092b9ab2db" # dragen-wgts-dna
+prid <- "20250919121765d8" # sash
 token <- orca_jwt() |> jwt_validate()
-p3 <- orca_prid2wfpayload(prid = prid, token = token)
+p <- orca_prid2wfpayload(prid = prid, token = token)
 }
 
 }
