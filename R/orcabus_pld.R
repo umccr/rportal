@@ -693,3 +693,50 @@ pld_dragenwgtsdna <- function(pld) {
     dplyr::relocate("orcabusId")
   return(d)
 }
+
+#' Payload Tidy dragenwgtsrna
+#'
+#' @param pld List with dragenwgtsrna workflow parameters.
+#'
+#' @return A tidy tibble.
+#' @export
+pld_dragenwgtsrna <- function(pld) {
+  payload_okay(pld)
+  pdata <- pld[["data"]]
+  id <- pld[["orcabusId"]]
+  # collapse FastqRgidList into single string
+  pdata[["tags"]][["fastqRgidList"]] <- pdata[["tags"]][["fastqRgidList"]] |>
+    paste(collapse = ", ")
+  tags <- pdata[["tags"]] |>
+    tibble::as_tibble_row() |>
+    dplyr::mutate(orcabusId = id)
+  # just grab only necessary elements, ignore rest
+  inputs <- pdata[["inputs"]][c("sequenceData", "sampleName")]
+  inputs[["sequenceData"]][["fastqListRows"]] <-
+    inputs[["sequenceData"]][["fastqListRows"]] |>
+    purrr::map(tibble::as_tibble_row) |>
+    dplyr::bind_rows() |>
+    list()
+  inputs[["fastqListRows"]] <- inputs[["sequenceData"]][["fastqListRows"]]
+  inputs[["sequenceData"]] <- NULL
+  inputs <- inputs |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("input_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  outputs <- pdata[["outputs"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("output_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  engpar <- pdata[["engineParameters"]] |>
+    purrr::map(\(x) x |> stringr::str_replace("/$", "")) |>
+    tibble::as_tibble_row() |>
+    rlang::set_names(\(x) glue("engparam_{x}")) |>
+    dplyr::mutate(orcabusId = id)
+  d <- tags |>
+    dplyr::left_join(inputs, by = "orcabusId") |>
+    dplyr::left_join(outputs, by = "orcabusId") |>
+    dplyr::left_join(engpar, by = "orcabusId") |>
+    dplyr::relocate("orcabusId")
+  return(d)
+}
