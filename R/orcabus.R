@@ -181,7 +181,7 @@ orca_libid2workflows <- function(libid, token, wf_name = NULL, page_size = 10, s
   assertthat::assert_that(stage %in% orca_stages())
   wf_name_qstring <- ""
   if (!is.null(wf_name)) {
-    wf_name_qstring <- glue("&workflow__workflowName={wf_name}")
+    wf_name_qstring <- glue("&workflow__name={wf_name}")
   }
   ep <- glue("https://workflow.{stage}.umccr.org/api/v1/workflowrun/")
   url <- glue("{ep}?libraries__libraryId={libid}&rowsPerPage={page_size}{wf_name_qstring}")
@@ -253,7 +253,7 @@ orca_workflow_list <- function(
   assertthat::assert_that(stage %in% orca_stages())
   wf_name_qstring <- ""
   if (!is.null(wf_name)) {
-    wf_name_qstring <- glue("&workflow__workflowName={wf_name}")
+    wf_name_qstring <- glue("&workflow__name={wf_name}")
   }
   status_qstring <- ""
   if (!is.null(status)) {
