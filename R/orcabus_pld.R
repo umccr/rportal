@@ -668,6 +668,7 @@ pld_dragenwgtsdna <- function(pld) {
   inputs[["somaticTmbOptions"]] <- NULL
   inputs[["targetedCallerOptions"]] <- NULL
   inputs[["alignmentOptions"]] <- NULL
+  inputs[["somaticAlignmentOptions"]] <- NULL
   inputs[["somaticSvCallerOptions"]] <- NULL
   inputs[["snvVariantCallerOptions"]] <- NULL
   inputs[["somaticCnvCallerOptions"]] <- NULL
