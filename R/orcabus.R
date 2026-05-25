@@ -300,6 +300,33 @@ orca_stages <- function() {
   c("prod", "stg", "dev")
 }
 
+#' Grab externalSampleId from libraryId
+#'
+#' @param libid The library ID.
+#' @param token JWT to use for authentication.
+#' @param stage Environment where API is deployed (prod, stg or dev).
+#'
+#' @returns The external sample ID.
+#'
+#' @examples
+#' \dontrun{
+#' token <- orca_jwt() |> jwt_validate()
+#' libid <- "L2600301"
+#' orca_meta_libid2extsampleid(libid, token)
+#' }
+#' @export
+orca_meta_libid2extsampleid <- function(libid, token, stage = "prod") {
+  stopifnot(stage %in% orca_stages())
+  srv <- "metadata"
+  ep <- glue("https://{srv}.{stage}.umccr.org/api/v1/library")
+  url <- glue("{ep}?libraryId={libid}")
+  resp <- orca_query_url(url, token)
+  stopifnot(length(resp[["results"]]) == 1)
+  res <- resp[["results"]][[1]]
+  stopifnot("sample" %in% names(res))
+  res[["sample"]][["externalSampleId"]]
+}
+
 # urls <- list(
 #   file = list(
 #     all = "https://file.{ns}.umccr.org/api/v1/",

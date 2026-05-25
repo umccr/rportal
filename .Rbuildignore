@@ -2,6 +2,7 @@
 ^CODE_OF_CONDUCT\.md$
 ^Dockerfile$
 ^LICENSE\.md$
+^Makefile$
 ^README\.Rmd$
 ^\.DS_Store$
 ^\.Rproj\.user$
@@ -11,6 +12,7 @@
 ^\.dvcignore$
 ^\.github$
 ^\.pre-commit-config\.yaml$
+^air\.toml$
 ^conda$
 ^data-raw$
 ^docs$
@@ -18,6 +20,7 @@
 ^vignettes$
 inst/reports/datashare/nogit
 inst/reports/mega_seqrunsum/.quarto
+inst/reports/mega_seqrunsum/2024/report_files
 inst/reports/mega_seqrunsum/nogit
 inst/reports/mega_seqrunsum/report_files
 inst/reports/seqrunsum/.quarto
