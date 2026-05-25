@@ -309,18 +309,21 @@ orca_stages <- function() {
 #' @returns The external sample ID.
 #'
 #' @examples
+#' \dontrun{
 #' token <- orca_jwt() |> jwt_validate()
 #' libid <- "L2600301"
 #' orca_meta_libid2extsampleid(libid, token)
+#' }
 #' @export
 orca_meta_libid2extsampleid <- function(libid, token, stage = "prod") {
+  stopifnot(stage %in% orca_stages())
   srv <- "metadata"
   ep <- glue("https://{srv}.{stage}.umccr.org/api/v1/library")
   url <- glue("{ep}?libraryId={libid}")
   resp <- orca_query_url(url, token)
-  assertthat::assert_that(length(resp[["results"]]) == 1)
+  stopifnot(length(resp[["results"]]) == 1)
   res <- resp[["results"]][[1]]
-  assertthat::assert_that("orcabusId" %in% names(res))
+  stopifnot("sample" %in% names(res))
   res[["sample"]][["externalSampleId"]]
 }
 

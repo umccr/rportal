@@ -20,7 +20,9 @@ The external sample ID.
 Grab externalSampleId from libraryId
 }
 \examples{
+\dontrun{
 token <- orca_jwt() |> jwt_validate()
 libid <- "L2600301"
 orca_meta_libid2extsampleid(libid, token)
+}
 }
